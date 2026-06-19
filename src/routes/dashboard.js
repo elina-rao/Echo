@@ -30,7 +30,7 @@ router.get('/auth/login', (req, res) => {
   req.session.oauth2State = state;
 
   const params = new URLSearchParams({
-    client_id: process.env.DISCORD_CLIENT_ID,
+    client_id: process.env.CLIENT_ID,
     redirect_uri: process.env.DASHBOARD_REDIRECT_URI,
     response_type: 'code',
     scope: 'identify guilds',
@@ -55,7 +55,7 @@ router.get('/auth/callback', async (req, res) => {
 
   try {
     const tokenBody = new URLSearchParams({
-      client_id: process.env.DISCORD_CLIENT_ID,
+      client_id: process.env.CLIENT_ID,
       client_secret: process.env.DISCORD_CLIENT_SECRET,
       grant_type: 'authorization_code',
       code,
