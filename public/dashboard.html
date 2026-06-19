@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Echo Dashboard</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236B3FA0'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='Inter,sans-serif' font-size='18' font-weight='800' fill='%23fff'%3EE%3C/text%3E%3C/svg%3E">
+  <link rel="icon" href="https://i.ibb.co/pBGZwnJK/echo-pfp-v4.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -197,7 +197,99 @@
       padding: 12px; border-top: 1px solid #2f3136;
       font-size: 11px; color: #6B3FA0; text-align: center;
       font-weight: 600; letter-spacing: 0.02em;
+      transition: color 0.2s;
     }
+    .sidebar-footer:hover { color: #8B5CF6; }
+
+    .nav-item {
+      position: relative;
+    }
+    .nav-item.active::before {
+      content: ''; position: absolute; left: 0; top: 4px; bottom: 4px;
+      width: 3px; border-radius: 2px; background: #6B3FA0;
+      box-shadow: 0 0 8px rgba(107,63,160,0.5);
+    }
+
+    .card {
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      border-color: #404249;
+    }
+
+    .nav-item:hover { background: #2f3136; color: #dbdee1; }
+    .nav-item.active { background: rgba(107,63,160,0.12); color: #f2f3f5; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6B3FA0, #8B5CF6);
+      box-shadow: 0 2px 8px rgba(107,63,160,0.3);
+      transition: transform 0.15s, box-shadow 0.2s;
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(107,63,160,0.45);
+      opacity: 1;
+    }
+    .btn-primary:active { transform: translateY(0); }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid #2f3136;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-secondary:hover { border-color: #6B3FA0; color: #f2f3f5; opacity: 1; }
+
+    .server-header {
+      background: linear-gradient(180deg, rgba(107,63,160,0.08) 0%, transparent 100%);
+      border-bottom: 1px solid rgba(107,63,160,0.15);
+    }
+
+    .skeleton {
+      background: linear-gradient(90deg, #1e1f22 25%, #2f3136 50%, #1e1f22 75%);
+      background-size: 200% 100%;
+      animation: skeleton 1.5s ease infinite;
+      border-radius: 6px;
+    }
+    @keyframes skeleton { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    .setting-row:hover { background: rgba(255,255,255,0.02); border-radius: 4px; }
+
+    .toggle.active { background: linear-gradient(135deg, #6B3FA0, #8B5CF6); box-shadow: 0 0 8px rgba(107,63,160,0.3); }
+
+    .main { padding: 32px 40px; }
+    @media (max-width: 768px) { .main { padding: 20px; } }
+
+    .user-section {
+      display: flex; align-items: center; gap: 8px; padding: 12px 20px;
+      border-top: 1px solid #2f3136; margin-top: auto;
+    }
+    .user-avatar {
+      width: 28px; height: 28px; border-radius: 50%; background: #2f3136;
+      overflow: hidden; flex-shrink: 0;
+    }
+    .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .user-name { font-size: 12px; font-weight: 600; color: #dbdee1; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .logout-btn {
+      font-size: 11px; color: #949ba4; cursor: pointer; padding: 4px 8px;
+      border-radius: 4px; transition: background 0.15s, color 0.15s; border: none; background: transparent; font-family: inherit;
+    }
+    .logout-btn:hover { background: rgba(237,66,69,0.1); color: #ed4245; }
+
+    .card-grid .card[onclick] {
+      position: relative;
+      overflow: hidden;
+    }
+    .card-grid .card[onclick]::after {
+      content: '→'; position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+      font-size: 16px; color: #6B3FA0; opacity: 0; transition: opacity 0.2s, transform 0.2s;
+    }
+    .card-grid .card[onclick]:hover::after { opacity: 1; transform: translateY(-50%) translateX(4px); }
+
+    .overview-header { margin-bottom: 24px; }
+    .overview-header h1 { font-size: 22px; font-weight: 700; color: #f2f3f5; }
   </style>
 </head>
 <body>
@@ -205,7 +297,7 @@
     <aside class="sidebar" id="sidebar">
       <div class="server-header">
         <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:32px;height:32px;border-radius:8px;background:#6B3FA0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;">E</div>
+          <img src="https://i.ibb.co/pBGZwnJK/echo-pfp-v4.png" alt="Echo" style="width:32px;height:32px;border-radius:8px;flex-shrink:0;" />
           <h2>Echo Dashboard</h2>
         </div>
         <p id="serverName">Loading...</p>
@@ -273,6 +365,11 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
           Join-to-Create
         </div>
+      </div>
+      <div class="user-section" id="userSection" style="display:none;">
+        <div class="user-avatar" id="userAvatar"><img src="https://i.ibb.co/pBGZwnJK/echo-pfp-v4.png" alt="" /></div>
+        <span class="user-name" id="userName">@user</span>
+        <button class="logout-btn" id="logoutBtn" onclick="logout()">Logout</button>
       </div>
       <div class="sidebar-footer">Echo • Void Central</div>
     </aside>
@@ -440,11 +537,24 @@
     }
 
     async function loadSettings(guildId) {
-      for (const tab of ['overview', 'general', 'welcome', 'leveling']) {
+      for (const tab of ['overview', 'general', 'welcome', 'leveling', 'moderation', 'logging', 'reactionroles', 'verification', 'economy', 'birthday', 'counters', 'jointocreate']) {
         document.getElementById(`tab-${tab}`).innerHTML = `
           <div class="loading-overlay">
-            <div class="spinner"></div>
-            <div style="color:#949ba4;font-size:14px;">Loading settings...</div>
+            <div style="width:60%;height:20px;margin-bottom:12px;" class="skeleton"></div>
+            <div style="width:80%;height:14px;margin-bottom:8px;" class="skeleton"></div>
+            <div style="width:40%;height:14px;margin-bottom:24px;" class="skeleton"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div style="width:45%;height:16px;" class="skeleton"></div>
+              <div style="width:80px;height:24px;border-radius:12px;" class="skeleton"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              <div style="width:35%;height:16px;" class="skeleton"></div>
+              <div style="width:80px;height:24px;border-radius:12px;" class="skeleton"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="width:50%;height:16px;" class="skeleton"></div>
+              <div style="width:80px;height:24px;border-radius:12px;" class="skeleton"></div>
+            </div>
           </div>`;
       }
 
@@ -564,55 +674,54 @@
       const iconUrl = g.icon ? `https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png?size=128` : null;
 
       container.innerHTML = `
-        <div class="card" style="display:flex;align-items:center;gap:20px;padding:24px;">
-          <div style="width:64px;height:64px;border-radius:50%;background:#2f3136;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;">
+        <div class="overview-header" style="display:flex;align-items:center;gap:20px;margin-bottom:28px;">
+          <div style="width:56px;height:56px;border-radius:50%;background:#2f3136;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;border:2px solid rgba(107,63,160,0.3);">
             ${iconUrl ? `<img src="${iconUrl}" style="width:100%;height:100%;object-fit:cover;" />` : g.name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <h1 style="font-size:20px;font-weight:700;color:#f2f3f5;">${g.name}</h1>
-            <div style="display:flex;gap:12px;margin-top:6px;flex-wrap:wrap;">
-              <span style="font-size:13px;color:#949ba4;">👥 ${g.memberCount.toLocaleString()} members</span>
-              <span style="font-size:13px;color:#949ba4;">🆔 ${g.id}</span>
+            <h1 style="font-size:22px;font-weight:700;color:#f2f3f5;">${g.name}</h1>
+            <div style="display:flex;gap:16px;margin-top:4px;flex-wrap:wrap;">
+              <span style="font-size:13px;color:#949ba4;display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#23a55a;display:inline-block;"></span> ${g.memberCount.toLocaleString()} members</span>
+              <span style="font-size:13px;color:#949ba4;">ID: ${g.id}</span>
             </div>
           </div>
         </div>
         <div class="card-grid">
-          ${createStatCard('General Settings', 'Configure prefix, moderation roles, and server-wide bot behavior.', 'general')}
-          ${createStatCard('Welcome Messages', 'Customize join and leave messages, toggle the system on or off.', 'welcome')}
-          ${createStatCard('Leveling System', 'Manage XP rates, level-up rewards, and leaderboard settings.', 'leveling')}
-          ${createStatCard('Moderation', 'Set up auto-mod, mute roles, warning limits, and logging.', 'moderation')}
-          ${createStatCard('Logging', 'Choose which server events are recorded and where.', 'logging')}
-          ${createStatCard('Reaction Roles', 'Let members self-assign roles with reactions.', 'reactionroles')}
-          ${createStatCard('Verification', 'Gate access behind a verification step.', 'verification')}
-          ${createStatCard('Economy', 'Tune work payouts, daily rewards, and currency settings.', 'economy')}
-          ${createStatCard('Birthday', 'Automatic birthday announcements and role assignments.', 'birthday')}
-          ${createStatCard('Counters', 'Live voice channel stats for members, bots, and humans.', 'counters')}
-          ${createStatCard('Join-to-Create', 'Temporary voice channels on demand.', 'jointocreate')}
-          ${createStatCard('Bot Status', 'Echo is online and managing this server.', null, true)}
+          ${createStatCard('⚙️', 'General Settings', 'Prefix, roles, bot behavior', 'general')}
+          ${createStatCard('👋', 'Welcome Messages', 'Join/leave messages', 'welcome')}
+          ${createStatCard('📊', 'Leveling System', 'XP rates, rewards', 'leveling')}
+          ${createStatCard('🛡️', 'Moderation', 'Auto-mod, mute, warnings', 'moderation')}
+          ${createStatCard('📝', 'Logging', 'Event tracking', 'logging')}
+          ${createStatCard('😊', 'Reaction Roles', 'Self-assign roles', 'reactionroles')}
+          ${createStatCard('✅', 'Verification', 'Member gatekeeping', 'verification')}
+          ${createStatCard('💰', 'Economy', 'Currency, work, daily', 'economy')}
+          ${createStatCard('🎂', 'Birthday', 'Announcements, roles', 'birthday')}
+          ${createStatCard('📡', 'Counters', 'Live voice stats', 'counters')}
+          ${createStatCard('🔊', 'Join-to-Create', 'Temp voice channels', 'jointocreate')}
+          ${createStatCard(null, 'Bot Status', 'Echo is online and managing this server.', null, true)}
         </div>
       `;
 
-      function createStatCard(title, desc, tabId, isStatus) {
+      function createStatCard(emoji, title, desc, tabId, isStatus) {
         if (isStatus) {
           return `
-            <div class="card" style="cursor:default;">
-              <div class="card-title">Bot Status</div>
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                <span style="width:10px;height:10px;border-radius:50%;background:#23a55a;"></span>
-                <span style="font-size:14px;font-weight:500;color:#dbdee1;">Online</span>
+            <div class="card" style="cursor:default;border:1px solid rgba(107,63,160,0.2);background:linear-gradient(135deg,rgba(107,63,160,0.06),#1e1f22);">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <span style="width:10px;height:10px;border-radius:50%;background:#23a55a;box-shadow:0 0 6px rgba(35,165,90,0.5);"></span>
+                <span style="font-size:14px;font-weight:600;color:#dbdee1;">Echo — Online</span>
               </div>
-              <div style="font-size:13px;color:#949ba4;">
-                Echo is fully operational and managing this server's configuration.
+              <div style="font-size:13px;color:#949ba4;line-height:1.5;">
+                Fully operational and managing this server's configuration.
               </div>
             </div>`;
         }
         return `
-          <div class="card" onclick="navigateToTab('${tabId}');renderTab('${tabId}');" style="cursor:pointer;transition:border-color 0.15s;">
-            <div class="card-title">${title}</div>
-            <div class="card-desc">${desc}</div>
-            <div style="display:flex;justify-content:flex-end;">
-              <span style="font-size:12px;color:#5865F2;font-weight:600;">Configure →</span>
+          <div class="card" onclick="navigateToTab('${tabId}');renderTab('${tabId}');" style="cursor:pointer;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+              <span style="font-size:20px;">${emoji}</span>
+              <div style="font-size:14px;font-weight:600;color:#f2f3f5;">${title}</div>
             </div>
+            <div style="font-size:13px;color:#949ba4;line-height:1.4;">${desc}</div>
           </div>`;
       }
     }
@@ -993,6 +1102,11 @@
       ]));
     }
 
+    async function logout() {
+      await fetch(`${API}/auth/logout`, { method: 'POST', credentials: 'include' });
+      window.location.href = `${API}/auth/login`;
+    }
+
     async function init() {
       const params = new URLSearchParams(window.location.search);
       const err = params.get('error');
@@ -1010,6 +1124,11 @@
       try {
         const me = await apiFetch('/auth/me');
         document.querySelector('.server-header p').textContent = `@${me.username}`;
+        document.getElementById('userName').textContent = `@${me.username}`;
+        if (me.avatar) {
+          document.getElementById('userAvatar').innerHTML = `<img src="https://cdn.discordapp.com/avatars/${me.id}/${me.avatar}.png" alt="" />`;
+        }
+        document.getElementById('userSection').style.display = 'flex';
       } catch (e) {
         window.location.href = `${API}/auth/login`;
         return;
