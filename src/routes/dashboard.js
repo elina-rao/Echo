@@ -37,21 +37,27 @@ router.get('/auth/login', (req, res) => {
     state,
   });
 
-  res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
+  req.session.save(err => {
+    if (err) {
+      logger.error('Session save error during login:', err);
+      return res.status(500).json({ error: 'Session error' });
+    }
+    res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
+  });
 });
 
 router.get('/auth/callback', async (req, res) => {
   const { code, state } = req.query;
 
+  if (!code) {
+    return res.redirect('/dashboard.html?error=missing_code');
+  }
+
   if (!state || state !== req.session.oauth2State) {
-    return res.status(403).json({ error: 'Invalid OAuth2 state (CSRF)' });
+    return res.redirect('/dashboard.html?error=csrf');
   }
 
   delete req.session.oauth2State;
-
-  if (!code) {
-    return res.status(400).json({ error: 'Missing authorization code' });
-  }
 
   try {
     const tokenBody = new URLSearchParams({
@@ -71,13 +77,13 @@ router.get('/auth/callback', async (req, res) => {
     req.session.save(err => {
       if (err) {
         logger.error('Session save error after OAuth callback:', err);
-        return res.status(500).json({ error: 'Session error' });
+        return res.redirect('/dashboard.html?error=session');
       }
       res.redirect(process.env.DASHBOARD_SUCCESS_URL || '/dashboard.html');
     });
   } catch (error) {
     logger.error('OAuth token exchange failed:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to authenticate with Discord' });
+    res.redirect('/dashboard.html?error=auth_failed');
   }
 });
 

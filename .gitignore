@@ -144,3 +144,9 @@ dist
 # Database backup artifacts
 backups/
 *.dump
+
+# macOS
+.DS_Store
+
+# GitHub Actions workflows (not needed for Railway deployment)
+.github/workflows/

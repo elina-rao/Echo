@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Echo Dashboard</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236B3FA0'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='Inter,sans-serif' font-size='18' font-weight='800' fill='%23fff'%3EE%3C/text%3E%3C/svg%3E">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -111,7 +112,7 @@
       padding: 7px 32px 7px 12px; font-size: 13px; color: #dbdee1;
       cursor: pointer; outline: none; font-family: inherit;
     }
-    .select-wrap select:focus { border-color: #5865F2; }
+    .select-wrap select:focus { border-color: #6B3FA0; }
     .select-wrap::after {
       content: ''; position: absolute; right: 12px; top: 50%;
       transform: translateY(-50%);
@@ -133,7 +134,7 @@
       cursor: pointer; border: none; transition: opacity 0.15s; font-family: inherit;
     }
     .btn:hover { opacity: 0.85; }
-    .btn-primary { background: #5865F2; color: #fff; }
+    .btn-primary { background: #6B3FA0; color: #fff; }
     .btn-secondary { background: #2f3136; color: #dbdee1; }
     .btn-success { background: #23a55a; color: #fff; }
 
@@ -142,7 +143,7 @@
       padding: 7px 12px; font-size: 13px; color: #dbdee1; outline: none;
       font-family: inherit; width: 100%;
     }
-    .input-field:focus { border-color: #5865F2; }
+    .input-field:focus { border-color: #6B3FA0; }
 
     .server-selector-item {
       display: flex; align-items: center; gap: 10px;
@@ -167,7 +168,7 @@
 
     .spinner {
       width: 20px; height: 20px; border: 2px solid #2f3136;
-      border-top-color: #5865F2; border-radius: 50%;
+      border-top-color: #6B3FA0; border-radius: 50%;
       animation: spin 0.7s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -180,13 +181,33 @@
       text-align: center; padding: 48px 20px; color: #949ba4;
     }
     .empty-state svg { width: 48px; height: 48px; margin: 0 auto 12px; opacity: 0.4; }
+
+    .toast {
+      position: fixed; top: 16px; right: 16px; z-index: 200;
+      padding: 12px 20px; border-radius: 8px; font-size: 13px; font-weight: 500;
+      transform: translateX(120%); transition: transform 0.3s ease;
+      max-width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    .toast.show { transform: translateX(0); }
+    .toast-success { background: #23a55a; color: #fff; }
+    .toast-error { background: #ed4245; color: #fff; }
+    .toast-info { background: #6B3FA0; color: #fff; }
+
+    .sidebar-footer {
+      padding: 12px; border-top: 1px solid #2f3136;
+      font-size: 11px; color: #6B3FA0; text-align: center;
+      font-weight: 600; letter-spacing: 0.02em;
+    }
   </style>
 </head>
 <body>
   <div class="layout">
     <aside class="sidebar" id="sidebar">
       <div class="server-header">
-        <h2>Echo Dashboard</h2>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:8px;background:#6B3FA0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0;">E</div>
+          <h2>Echo Dashboard</h2>
+        </div>
         <p id="serverName">Loading...</p>
       </div>
 
@@ -220,7 +241,40 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
           Leveling System
         </div>
+        <div class="nav-item" data-tab="moderation">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Moderation
+        </div>
+        <div class="nav-item" data-tab="logging">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Logging
+        </div>
+        <div class="nav-item" data-tab="reactionroles">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+          Reaction Roles
+        </div>
+        <div class="nav-item" data-tab="verification">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M12 2a10 10 0 1 0 10 10h-10V2z"/></svg>
+          Verification
+        </div>
+        <div class="nav-item" data-tab="economy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Economy
+        </div>
+        <div class="nav-item" data-tab="birthday">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Birthday
+        </div>
+        <div class="nav-item" data-tab="counters">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          Counters
+        </div>
+        <div class="nav-item" data-tab="jointocreate">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Join-to-Create
+        </div>
       </div>
+      <div class="sidebar-footer">Echo • Void Central</div>
     </aside>
 
     <main class="main" id="mainContent">
@@ -228,6 +282,14 @@
       <div id="tab-general" class="tab-content"></div>
       <div id="tab-welcome" class="tab-content"></div>
       <div id="tab-leveling" class="tab-content"></div>
+      <div id="tab-moderation" class="tab-content"></div>
+      <div id="tab-logging" class="tab-content"></div>
+      <div id="tab-reactionroles" class="tab-content"></div>
+      <div id="tab-verification" class="tab-content"></div>
+      <div id="tab-economy" class="tab-content"></div>
+      <div id="tab-birthday" class="tab-content"></div>
+      <div id="tab-counters" class="tab-content"></div>
+      <div id="tab-jointocreate" class="tab-content"></div>
     </main>
   </div>
 
@@ -236,6 +298,8 @@
     <button class="btn btn-secondary" onclick="discardChanges()">Discard</button>
     <button class="btn btn-primary" onclick="saveAll()">Save Changes</button>
   </div>
+
+  <div class="toast" id="toast"></div>
 
   <script>
     const API = '/api/dashboard';
@@ -266,6 +330,13 @@
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
       document.getElementById(`tab-${tabId}`).classList.add('active');
       document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+    }
+
+    function showToast(message, type = 'info', duration = 4000) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast toast-${type} show`;
+      setTimeout(() => toast.classList.remove('show'), duration);
     }
 
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -307,8 +378,9 @@
         });
         dirty = {};
         document.getElementById('unsavedBar').classList.remove('show');
+        showToast('Settings saved successfully!', 'success');
       } catch (e) {
-        alert('Failed to save: ' + e.message);
+        showToast('Failed to save: ' + e.message, 'error');
       }
     }
 
@@ -410,7 +482,13 @@
 
     function renderTab(tab) {
       if (!guildData) return;
-      const fns = { overview: renderOverview, general: renderGeneral, welcome: renderWelcome, leveling: renderLeveling };
+      const fns = {
+        overview: renderOverview, general: renderGeneral, welcome: renderWelcome,
+        leveling: renderLeveling, moderation: renderModeration, logging: renderLogging,
+        reactionroles: renderReactionRoles, verification: renderVerification,
+        economy: renderEconomy, birthday: renderBirthday,
+        counters: renderCounters, jointocreate: renderJoinToCreate,
+      };
       if (fns[tab]) fns[tab]();
     }
 
@@ -502,6 +580,14 @@
           ${createStatCard('General Settings', 'Configure prefix, moderation roles, and server-wide bot behavior.', 'general')}
           ${createStatCard('Welcome Messages', 'Customize join and leave messages, toggle the system on or off.', 'welcome')}
           ${createStatCard('Leveling System', 'Manage XP rates, level-up rewards, and leaderboard settings.', 'leveling')}
+          ${createStatCard('Moderation', 'Set up auto-mod, mute roles, warning limits, and logging.', 'moderation')}
+          ${createStatCard('Logging', 'Choose which server events are recorded and where.', 'logging')}
+          ${createStatCard('Reaction Roles', 'Let members self-assign roles with reactions.', 'reactionroles')}
+          ${createStatCard('Verification', 'Gate access behind a verification step.', 'verification')}
+          ${createStatCard('Economy', 'Tune work payouts, daily rewards, and currency settings.', 'economy')}
+          ${createStatCard('Birthday', 'Automatic birthday announcements and role assignments.', 'birthday')}
+          ${createStatCard('Counters', 'Live voice channel stats for members, bots, and humans.', 'counters')}
+          ${createStatCard('Join-to-Create', 'Temporary voice channels on demand.', 'jointocreate')}
           ${createStatCard('Bot Status', 'Echo is online and managing this server.', null, true)}
         </div>
       `;
@@ -684,7 +770,243 @@
       condEls.forEach(r => r.style.display = lc.enabled ? '' : 'none');
     }
 
+    /* ───── Moderation ───── */
+
+    async function renderModeration() {
+      const container = document.getElementById('tab-moderation');
+      if (!guildData) return;
+      const cfg = dataCache.config || {};
+
+      let channels = [];
+      let roles = [];
+      try { channels = await apiFetch(`/guilds/${currentGuildId}/channels`); } catch (e) {}
+      try { roles = await apiFetch(`/guilds/${currentGuildId}/roles`); } catch (e) {}
+
+      const logChannelRow = makeSettingRow('Moderation Log Channel', 'Channel where moderation actions are logged.', () =>
+        makeSelect('config', 'modLogChannelId', cfg.modLogChannelId, channels));
+
+      const muteRoleRow = makeSettingRow('Mute Role', 'Role assigned to muted members.', () =>
+        makeSelect('config', 'muteRoleId', cfg.muteRoleId, roles));
+
+      const autoModRow = makeSettingRow('Auto-Moderation', 'Enable automatic moderation for spam, invites, and links.', () =>
+        makeToggle('config', 'autoModEnabled', cfg.autoModEnabled));
+
+      const warnLimitRow = makeSettingRow('Warning Limit', 'Max warnings before automatic action (ban/kick).', () =>
+        makeInput('config', 'warnLimit', cfg.warnLimit, '5'));
+
+      container.innerHTML = '';
+      container.appendChild(renderCard('mod-main', '🛡️ Moderation Settings',
+        'Configure moderation behavior, auto-mod, and logging.', [
+        logChannelRow, muteRoleRow, autoModRow, warnLimitRow,
+      ]));
+    }
+
+    /* ───── Logging ───── */
+
+    async function renderLogging() {
+      const container = document.getElementById('tab-logging');
+      if (!guildData) return;
+      const cfg = dataCache.config || {};
+
+      let channels = [];
+      try { channels = await apiFetch(`/guilds/${currentGuildId}/channels`); } catch (e) {}
+
+      const logChannelRow = makeSettingRow('Log Channel', 'Channel where all server events are logged.', () =>
+        makeSelect('config', 'logChannelId', cfg.logChannelId, channels));
+
+      const events = [
+        { key: 'logMessages', label: 'Message Events', hint: 'Track message edits and deletions.' },
+        { key: 'logMembers', label: 'Member Events', hint: 'Track joins, leaves, and role changes.' },
+        { key: 'logModeration', label: 'Moderation Events', hint: 'Track warns, kicks, bans, and mutes.' },
+        { key: 'logChannels', label: 'Channel Events', hint: 'Track channel creates, edits, and deletes.' },
+        { key: 'logVoice', label: 'Voice Events', hint: 'Track voice channel joins and leaves.' },
+      ];
+
+      const eventRows = events.map(e =>
+        makeSettingRow(e.label, e.hint, () => makeToggle('config', e.key, cfg[e.key]))
+      );
+
+      container.innerHTML = '';
+      container.appendChild(renderCard('log-main', '📝 Logging Configuration',
+        'Select which events to log and where.', [logChannelRow]));
+      container.appendChild(renderCard('log-events', 'Events to Log', '', eventRows));
+    }
+
+    /* ───── Reaction Roles ───── */
+
+    async function renderReactionRoles() {
+      const container = document.getElementById('tab-reactionroles');
+      if (!guildData) return;
+      const cfg = dataCache.config || {};
+
+      let channels = [];
+      let roles = [];
+      try { channels = await apiFetch(`/guilds/${currentGuildId}/channels`); } catch (e) {}
+      try { roles = await apiFetch(`/guilds/${currentGuildId}/roles`); } catch (e) {}
+
+      const enabledRow = makeSettingRow('Reaction Roles', 'Toggle the reaction role system on or off.', () =>
+        makeToggle('config', 'reactionRolesEnabled', cfg.reactionRolesEnabled));
+
+      const channelRow = makeSettingRow('Panel Channel', 'Channel where reaction role panels are posted.', () =>
+        makeSelect('config', 'reactionRoleChannelId', cfg.reactionRoleChannelId, channels));
+
+      container.innerHTML = '';
+      container.appendChild(renderCard('rr-main', '😊 Reaction Roles',
+        'Let members assign roles by reacting to messages.', [enabledRow, channelRow]));
+    }
+
+    /* ───── Verification ───── */
+
+    async function renderVerification() {
+      const container = document.getElementById('tab-verification');
+      if (!guildData) return;
+      const cfg = dataCache.config || {};
+
+      let channels = [];
+      let roles = [];
+      try { channels = await apiFetch(`/guilds/${currentGuildId}/channels`); } catch (e) {}
+      try { roles = await apiFetch(`/guilds/${currentGuildId}/roles`); } catch (e) {}
+
+      const enabledRow = makeSettingRow('Verification System', 'Toggle the member verification system.', () =>
+        makeToggle('config', 'verificationEnabled', cfg.verificationEnabled));
+
+      const verifiedRoleRow = makeSettingRow('Verified Role', 'Role assigned after successful verification.', () =>
+        makeSelect('config', 'verifiedRoleId', cfg.verifiedRoleId, roles));
+
+      const channelRow = makeSettingRow('Verification Channel', 'Channel where users can verify.', () =>
+        makeSelect('config', 'verificationChannelId', cfg.verificationChannelId, channels));
+
+      container.innerHTML = '';
+      container.appendChild(renderCard('verif-main', '✅ Verification',
+        'Require members to verify before accessing the server.', [
+        enabledRow, verifiedRoleRow, channelRow,
+      ]));
+    }
+
+    /* ───── Economy ───── */
+
+    async function renderEconomy() {
+      const container = document.getElementById('tab-economy');
+      if (!guildData) return;
+      const cfg = dataCache.config || {};
+
+      const enabledRow = makeSettingRow('Economy System', 'Toggle the economy and currency system.', () =>
+        makeToggle('config', 'economyEnabled', cfg.economyEnabled));
+
+      const workRangeRow = makeSettingRow('Work Payout Range', 'Min and max ◈ earned from /work.', () => {
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'display:flex;align-items:center;gap:6px;';
+        const min = makeInput('config', 'economyWorkMin', cfg.economyWorkMin, '10');
+        min.style.width = '60px';
+        const max = makeInput('config', 'economyWorkMax', cfg.economyWorkMax, '100');
+        max.style.width = '60px';
+        wrap.appendChild(min);
+        wrap.appendChild(document.createTextNode(' to '));
+        wrap.appendChild(max);
+        return wrap;
+      });
+
+      const dailyRow = makeSettingRow('Daily Reward', '◈ earned from /daily command.', () =>
+        makeInput('config', 'economyDaily', cfg.economyDaily, '100'));
+
+      container.innerHTML = '';
+      container.appendChild(renderCard('eco-main', '💰 Economy Settings',
+        'Configure the ◈ currency, work, and daily rewards.', [
+        enabledRow, workRangeRow, dailyRow,
+      ]));
+    }
+
+    /* ───── Birthday ───── */
+
+    async function renderBirthday() {
+      const container = document.getElementById('tab-birthday');
+      if (!guildData) return;
+      const cfg = dataCache.config || {};
+
+      let channels = [];
+      let roles = [];
+      try { channels = await apiFetch(`/guilds/${currentGuildId}/channels`); } catch (e) {}
+      try { roles = await apiFetch(`/guilds/${currentGuildId}/roles`); } catch (e) {}
+
+      const enabledRow = makeSettingRow('Birthday System', 'Toggle automatic birthday announcements.', () =>
+        makeToggle('config', 'birthdayEnabled', cfg.birthdayEnabled));
+
+      const channelRow = makeSettingRow('Birthday Channel', 'Channel where birthday announcements are posted.', () =>
+        makeSelect('config', 'birthdayChannelId', cfg.birthdayChannelId, channels));
+
+      const roleRow = makeSettingRow('Birthday Role', 'Role assigned to members on their birthday.', () =>
+        makeSelect('config', 'birthdayRoleId', cfg.birthdayRoleId, roles));
+
+      container.innerHTML = '';
+      container.appendChild(renderCard('bday-main', '🎂 Birthday System',
+        'Celebrate member birthdays with announcements and roles.', [
+        enabledRow, channelRow, roleRow,
+      ]));
+    }
+
+    /* ───── Counters ───── */
+
+    async function renderCounters() {
+      const container = document.getElementById('tab-counters');
+      if (!guildData) return;
+      const cfg = dataCache.config || {};
+
+      const enabledRow = makeSettingRow('Server Counters', 'Toggle automatic voice channel counters.', () =>
+        makeToggle('config', 'countersEnabled', cfg.countersEnabled));
+
+      const memberRow = makeSettingRow('Member Counter', 'Show total member count in a voice channel.', () =>
+        makeToggle('config', 'counterMembers', cfg.counterMembers));
+
+      const botRow = makeSettingRow('Bot Counter', 'Show total bot count in a voice channel.', () =>
+        makeToggle('config', 'counterBots', cfg.counterBots));
+
+      const humanRow = makeSettingRow('Human Counter', 'Show total human member count in a voice channel.', () =>
+        makeToggle('config', 'counterHumans', cfg.counterHumans));
+
+      container.innerHTML = '';
+      container.appendChild(renderCard('cnt-main', '📊 Server Counters',
+        'Create voice channels that display live server statistics.', [
+        enabledRow, memberRow, botRow, humanRow,
+      ]));
+    }
+
+    /* ───── Join-to-Create ───── */
+
+    async function renderJoinToCreate() {
+      const container = document.getElementById('tab-jointocreate');
+      if (!guildData) return;
+      const cfg = dataCache.config || {};
+
+      let channels = [];
+      try { channels = await apiFetch(`/guilds/${currentGuildId}/channels`); } catch (e) {}
+
+      const enabledRow = makeSettingRow('Join-to-Create', 'Toggle the join-to-create voice channel system.', () =>
+        makeToggle('config', 'joinToCreateEnabled', cfg.joinToCreateEnabled));
+
+      const channelRow = makeSettingRow('Join Channel', 'Voice channel that users join to create a temporary channel.', () =>
+        makeSelect('config', 'joinToCreateChannelId', cfg.joinToCreateChannelId, channels));
+
+      container.innerHTML = '';
+      container.appendChild(renderCard('j2c-main', '🔊 Join-to-Create',
+        'Let members create temporary voice channels by joining a designated channel.', [
+        enabledRow, channelRow,
+      ]));
+    }
+
     async function init() {
+      const params = new URLSearchParams(window.location.search);
+      const err = params.get('error');
+      if (err) {
+        const messages = {
+          csrf: 'Security check failed. Please try logging in again.',
+          missing_code: 'No authorization code received from Discord.',
+          auth_failed: 'Failed to authenticate with Discord. Please try again.',
+          session: 'Could not save your session. Please try again.',
+        };
+        showToast(messages[err] || 'An error occurred. Try again.', 'error', 6000);
+        history.replaceState(null, '', window.location.pathname);
+      }
+
       try {
         const me = await apiFetch('/auth/me');
         document.querySelector('.server-header p').textContent = `@${me.username}`;
