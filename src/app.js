@@ -4,7 +4,6 @@ import { Client, Collection, GatewayIntentBits } from 'discord.js';
 import { REST } from '@discordjs/rest';
 import express from 'express';
 import session from 'express-session';
-import pgSession from 'connect-pg-simple';
 import cron from 'node-cron';
 
 import dashboardRouter from './routes/dashboard.js';
@@ -195,10 +194,6 @@ class TitanBot extends Client {
     app.set('trust proxy', 1);
 
     app.use(session({
-      store: new (pgSession(session))({
-        conString: process.env.DATABASE_URL,
-        createTableIfMissing: true,
-      }),
       secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
       resave: false,
       saveUninitialized: false,
