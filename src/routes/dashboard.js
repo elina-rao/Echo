@@ -74,6 +74,12 @@ router.get('/auth/callback', async (req, res) => {
 
     req.session.accessToken = tokenResp.data.access_token;
     req.session.tokenType = tokenResp.data.token_type;
+
+    const { data: user } = await axios.get(`${DISCORD_API}/users/@me`, {
+      headers: { Authorization: `${req.session.tokenType} ${req.session.accessToken}` },
+    });
+    req.session.userId = user.id;
+
     req.session.save(err => {
       if (err) {
         logger.error('Session save error after OAuth callback:', err);
@@ -98,6 +104,49 @@ router.get('/auth/me', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch user data' });
   }
 });
+
+async function requireDashboardAccess(req, res, next) {
+  const { guildId } = req.params;
+
+  if (!req.session.userId) {
+    return res.status(401).json({ error: 'User ID not found in session' });
+  }
+
+  const client = getClient(req);
+  const guild = client?.guilds?.cache?.get(guildId);
+
+  if (!guild) {
+    return res.status(404).json({ error: 'Guild not found or bot not present' });
+  }
+
+  try {
+    const config = await fetchGuildConfig(client, guildId);
+    const allowedRoles = config.dashboardAccessRoles;
+
+    if (!allowedRoles || allowedRoles.length === 0) {
+      return next();
+    }
+
+    let member = guild.members.cache.get(req.session.userId);
+    if (!member) {
+      try {
+        member = await guild.members.fetch(req.session.userId);
+      } catch {
+        return res.status(403).json({ error: 'Access denied. You must be a member of this server.' });
+      }
+    }
+
+    const hasRole = member.roles.cache.some(r => allowedRoles.includes(r.id));
+    if (!hasRole) {
+      return res.status(403).json({ error: 'Access denied. You do not have the required role to access the dashboard.' });
+    }
+
+    next();
+  } catch (error) {
+    logger.error(`Dashboard access check failed for guild ${guildId}:`, error);
+    next();
+  }
+}
 
 router.get('/guilds', requireAuth, async (req, res) => {
   try {
@@ -164,7 +213,7 @@ router.get('/guilds/:guildId/roles', requireAuth, async (req, res) => {
   res.json(roles);
 });
 
-router.get('/settings/:guildId', requireAuth, async (req, res) => {
+router.get('/settings/:guildId', requireAuth, requireDashboardAccess, async (req, res) => {
   const { guildId } = req.params;
   const client = getClient(req);
 
@@ -197,7 +246,7 @@ router.get('/settings/:guildId', requireAuth, async (req, res) => {
   }
 });
 
-router.post('/settings/:guildId', requireAuth, async (req, res) => {
+router.post('/settings/:guildId', requireAuth, requireDashboardAccess, async (req, res) => {
   const { guildId } = req.params;
   const client = getClient(req);
   const guild = client?.guilds?.cache?.get(guildId);
@@ -246,6 +295,44 @@ router.post('/settings/:guildId', requireAuth, async (req, res) => {
   } catch (error) {
     logger.error(`Failed to save settings for guild ${guildId}:`, error);
     res.status(500).json({ error: 'Failed to save server configuration' });
+  }
+});
+
+router.get('/settings/:guildId/access-roles', requireAuth, async (req, res) => {
+  const { guildId } = req.params;
+  const client = getClient(req);
+
+  try {
+    const config = await fetchGuildConfig(client, guildId);
+    res.json({ roleIds: config.dashboardAccessRoles || [] });
+  } catch (error) {
+    logger.error(`Failed to fetch access roles for guild ${guildId}:`, error);
+    res.status(500).json({ error: 'Failed to fetch access roles' });
+  }
+});
+
+router.put('/settings/:guildId/access-roles', requireAuth, async (req, res) => {
+  const { guildId } = req.params;
+  const client = getClient(req);
+  const { roleIds } = req.body;
+
+  if (!Array.isArray(roleIds)) {
+    return res.status(400).json({ error: 'roleIds must be an array' });
+  }
+
+  try {
+    const config = await fetchGuildConfig(client, guildId);
+    config.dashboardAccessRoles = roleIds;
+    const saved = await saveGuildConfig(client, guildId, config);
+    if (saved) {
+      await client.db.delete(`guild:${guildId}:config`);
+      res.json({ success: true, roleIds });
+    } else {
+      res.status(500).json({ error: 'Failed to save access roles' });
+    }
+  } catch (error) {
+    logger.error(`Failed to save access roles for guild ${guildId}:`, error);
+    res.status(500).json({ error: 'Failed to save access roles' });
   }
 });
 
