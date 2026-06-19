@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Echo Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #121214;
+      color: #dbdee1;
+      overflow: hidden;
+      height: 100vh;
+    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2f3136; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #404249; }
+
+    .layout { display: flex; height: 100vh; }
+
+    .sidebar {
+      width: 260px;
+      min-width: 260px;
+      background: #1e1f22;
+      border-right: 1px solid #2f3136;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px;
+    }
+
+    .server-header {
+      padding: 20px 20px 12px;
+      border-bottom: 1px solid #2f3136;
+    }
+    .server-header h2 { font-size: 16px; font-weight: 600; color: #f2f3f5; }
+    .server-header p { font-size: 12px; color: #949ba4; margin-top: 2px; }
+
+    .nav-section { padding: 12px 8px; }
+    .nav-section .label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.05em; color: #949ba4; padding: 4px 12px 8px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; border-radius: 6px; cursor: pointer;
+      font-size: 14px; font-weight: 500; color: #949ba4;
+      transition: all 0.15s ease; margin: 1px 0;
+    }
+    .nav-item:hover { background: #2f3136; color: #dbdee1; }
+    .nav-item.active { background: #404249; color: #f2f3f5; }
+    .nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .card {
+      background: #1e1f22;
+      border: 1px solid #2f3136;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 14px; font-weight: 600; color: #f2f3f5;
+      margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+    }
+    .card-desc {
+      font-size: 13px; color: #949ba4; margin-bottom: 16px; line-height: 1.5;
+    }
+    .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 900px) { .card-grid { grid-template-columns: 1fr; } }
+
+    .setting-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0; border-bottom: 1px solid #2f3136;
+    }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-label { font-size: 14px; font-weight: 500; color: #dbdee1; }
+    .setting-hint { font-size: 12px; color: #949ba4; margin-top: 2px; }
+
+    .toggle {
+      position: relative; width: 44px; height: 24px; flex-shrink: 0;
+      cursor: pointer; border-radius: 12px; background: #404249;
+      transition: background 0.2s ease; border: none; outline: none;
+    }
+    .toggle.active { background: #23a55a; }
+    .toggle::after {
+      content: ''; position: absolute; top: 3px; left: 3px;
+      width: 18px; height: 18px; border-radius: 50%; background: #f2f3f5;
+      transition: transform 0.2s ease;
+    }
+    .toggle.active::after { transform: translateX(20px); }
+
+    .select-wrap {
+      position: relative; min-width: 180px;
+    }
+    .select-wrap select {
+      appearance: none; width: 100%;
+      background: #1e1f22; border: 1px solid #2f3136; border-radius: 4px;
+      padding: 7px 32px 7px 12px; font-size: 13px; color: #dbdee1;
+      cursor: pointer; outline: none; font-family: inherit;
+    }
+    .select-wrap select:focus { border-color: #5865F2; }
+    .select-wrap::after {
+      content: ''; position: absolute; right: 12px; top: 50%;
+      transform: translateY(-50%);
+      border-left: 4px solid transparent; border-right: 4px solid transparent;
+      border-top: 5px solid #949ba4; pointer-events: none;
+    }
+
+    .unsaved-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #1e1f22; border-top: 1px solid #2f3136;
+      padding: 12px 24px; display: none; align-items: center;
+      justify-content: flex-end; gap: 12px; z-index: 100;
+      transform: translateY(100%); transition: transform 0.25s ease;
+    }
+    .unsaved-bar.show { transform: translateY(0); display: flex; }
+    .unsaved-bar span { font-size: 13px; color: #949ba4; margin-right: auto; }
+    .btn {
+      padding: 8px 20px; border-radius: 4px; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: none; transition: opacity 0.15s; font-family: inherit;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: #5865F2; color: #fff; }
+    .btn-secondary { background: #2f3136; color: #dbdee1; }
+    .btn-success { background: #23a55a; color: #fff; }
+
+    .input-field {
+      background: #1e1f22; border: 1px solid #2f3136; border-radius: 4px;
+      padding: 7px 12px; font-size: 13px; color: #dbdee1; outline: none;
+      font-family: inherit; width: 100%;
+    }
+    .input-field:focus { border-color: #5865F2; }
+
+    .server-selector-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; border-radius: 6px; cursor: pointer;
+      transition: background 0.15s; margin: 2px 0;
+    }
+    .server-selector-item:hover { background: #2f3136; }
+    .server-selector-item.active { background: #404249; }
+    .server-avatar {
+      width: 32px; height: 32px; border-radius: 50%; background: #2f3136;
+      flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #dbdee1;
+    }
+    .server-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; font-weight: 600; padding: 2px 8px;
+      border-radius: 10px; background: #23a55a20; color: #23a55a;
+    }
+    .badge.inactive { background: #ed424520; color: #ed4245; }
+
+    .spinner {
+      width: 20px; height: 20px; border: 2px solid #2f3136;
+      border-top-color: #5865F2; border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-overlay {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 16px; padding: 80px 20px;
+    }
+    .empty-state {
+      text-align: center; padding: 48px 20px; color: #949ba4;
+    }
+    .empty-state svg { width: 48px; height: 48px; margin: 0 auto 12px; opacity: 0.4; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="server-header">
+        <h2>Echo Dashboard</h2>
+        <p id="serverName">Loading...</p>
+      </div>
+
+      <div style="padding: 12px 8px 0;">
+        <div class="server-selector-item active" id="serverSelectorBtn" style="margin-bottom:4px;">
+          <div class="server-avatar" id="serverAvatarSmall">E</div>
+          <div>
+            <div style="font-size:14px;font-weight:500;color:#dbdee1;" id="serverSelectorName">Select Server</div>
+            <div style="font-size:11px;color:#949ba4;" id="serverSelectorMembers"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:1;overflow-y:auto;" id="serverList"></div>
+
+      <div class="nav-section">
+        <div class="label">Navigation</div>
+        <div class="nav-item active" data-tab="overview">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Overview
+        </div>
+        <div class="nav-item" data-tab="general">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          General Settings
+        </div>
+        <div class="nav-item" data-tab="welcome">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Welcome Messages
+        </div>
+        <div class="nav-item" data-tab="leveling">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+          Leveling System
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="mainContent">
+      <div id="tab-overview" class="tab-content active"></div>
+      <div id="tab-general" class="tab-content"></div>
+      <div id="tab-welcome" class="tab-content"></div>
+      <div id="tab-leveling" class="tab-content"></div>
+    </main>
+  </div>
+
+  <div class="unsaved-bar" id="unsavedBar">
+    <span>You have unsaved changes</span>
+    <button class="btn btn-secondary" onclick="discardChanges()">Discard</button>
+    <button class="btn btn-primary" onclick="saveAll()">Save Changes</button>
+  </div>
+
+  <script>
+    const API = '/api/dashboard';
+    let currentGuildId = null;
+    let guildData = null;
+    let dirty = {};
+    let dataCache = {};
+
+    async function apiFetch(path, opts = {}) {
+      const res = await fetch(`${API}${path}`, {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...opts.headers },
+        ...opts,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        if (res.status === 401) {
+          window.location.href = `${API}/auth/login`;
+          return null;
+        }
+        throw new Error(err.error || 'Request failed');
+      }
+      return res.json();
+    }
+
+    function navigateToTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById(`tab-${tabId}`).classList.add('active');
+      document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+    }
+
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const tab = item.dataset.tab;
+        navigateToTab(tab);
+        if (currentGuildId) renderTab(tab);
+      });
+    });
+
+    function markDirty(section, key) {
+      if (!dirty[section]) dirty[section] = {};
+      dirty[section][key] = true;
+      document.getElementById('unsavedBar').classList.add('show');
+    }
+
+    function discardChanges() {
+      dirty = {};
+      document.getElementById('unsavedBar').classList.remove('show');
+      if (currentGuildId) loadSettings(currentGuildId);
+    }
+
+    async function saveAll() {
+      const payload = {};
+      for (const section of Object.keys(dirty)) {
+        if (dataCache[section]) {
+          payload[section] = { ...dataCache[section] };
+        }
+      }
+      if (Object.keys(payload).length === 0) {
+        document.getElementById('unsavedBar').classList.remove('show');
+        dirty = {};
+        return;
+      }
+      try {
+        await apiFetch(`/settings/${currentGuildId}`, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        dirty = {};
+        document.getElementById('unsavedBar').classList.remove('show');
+      } catch (e) {
+        alert('Failed to save: ' + e.message);
+      }
+    }
+
+    async function loadGuildList() {
+      try {
+        const guilds = await apiFetch('/guilds');
+        const container = document.getElementById('serverList');
+        if (!guilds || guilds.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <div style="font-weight:600;margin-bottom:4px;">No servers found</div>
+              <div style="font-size:13px;">Make sure you have Manage Server permission on at least one server where Echo is added.</div>
+            </div>`;
+          return;
+        }
+        container.innerHTML = guilds.map(g => `
+          <div class="server-selector-item ${g.id === currentGuildId ? 'active' : ''}"
+               onclick="selectGuild('${g.id}')">
+            <div class="server-avatar">
+              ${g.icon
+                ? `<img src="https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png" alt="" />`
+                : g.name.charAt(0).toUpperCase()}
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:14px;font-weight:500;color:#dbdee1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${g.name}</div>
+              <div style="margin-top:2px;">
+                <span class="badge ${g.botActive ? '' : 'inactive'}">
+                  ${g.botActive ? 'Active' : 'Not Added'}
+                </span>
+              </div>
+            </div>
+          </div>
+        `).join('');
+        if (!currentGuildId && guilds.length > 0) {
+          selectGuild(guilds[0].id);
+        }
+      } catch (e) {
+        document.getElementById('serverList').innerHTML = `
+          <div class="empty-state">
+            <div style="font-weight:600;color:#ed4245;">Failed to load servers</div>
+            <div style="font-size:13px;margin-top:4px;">${e.message}</div>
+          </div>`;
+      }
+    }
+
+    async function selectGuild(guildId) {
+      currentGuildId = guildId;
+      dirty = {};
+      document.getElementById('unsavedBar').classList.remove('show');
+      document.querySelectorAll('.server-selector-item').forEach(el => el.classList.remove('active'));
+      const sel = document.querySelector(`.server-selector-item[onclick*="'${guildId}'"]`);
+      if (sel) sel.classList.add('active');
+      document.getElementById('serverSelectorName').textContent = 'Loading...';
+      document.getElementById('serverSelectorMembers').textContent = '';
+      await loadSettings(guildId);
+    }
+
+    async function loadSettings(guildId) {
+      for (const tab of ['overview', 'general', 'welcome', 'leveling']) {
+        document.getElementById(`tab-${tab}`).innerHTML = `
+          <div class="loading-overlay">
+            <div class="spinner"></div>
+            <div style="color:#949ba4;font-size:14px;">Loading settings...</div>
+          </div>`;
+      }
+
+      try {
+        const data = await apiFetch(`/settings/${guildId}`);
+        guildData = data;
+        dataCache = {};
+
+        if (data.config) dataCache.config = JSON.parse(JSON.stringify(data.config));
+        if (data.welcome) dataCache.welcome = JSON.parse(JSON.stringify(data.welcome));
+        if (data.leveling) dataCache.leveling = JSON.parse(JSON.stringify(data.leveling));
+
+        document.getElementById('serverSelectorName').textContent = data.guild.name;
+        document.getElementById('serverSelectorMembers').textContent = `${data.guild.memberCount.toLocaleString()} members`;
+
+        const smallAvatar = document.getElementById('serverAvatarSmall');
+        if (data.guild.icon) {
+          smallAvatar.innerHTML = `<img src="https://cdn.discordapp.com/icons/${data.guild.id}/${data.guild.icon}.png" alt="" />`;
+        } else {
+          smallAvatar.textContent = data.guild.name.charAt(0).toUpperCase();
+        }
+
+        const activeTab = document.querySelector('.tab-content.active')?.id?.replace('tab-', '') || 'overview';
+        renderTab(activeTab);
+      } catch (e) {
+        for (const tab of ['overview', 'general', 'welcome', 'leveling']) {
+          document.getElementById(`tab-${tab}`).innerHTML = `
+            <div class="empty-state">
+              <div style="font-weight:600;color:#ed4245;">Failed to load settings</div>
+              <div style="font-size:13px;margin-top:4px;">${e.message}</div>
+            </div>`;
+        }
+      }
+    }
+
+    function renderTab(tab) {
+      if (!guildData) return;
+      const fns = { overview: renderOverview, general: renderGeneral, welcome: renderWelcome, leveling: renderLeveling };
+      if (fns[tab]) fns[tab]();
+    }
+
+    function makeToggle(section, key, value, onChange) {
+      const toggle = document.createElement('button');
+      toggle.className = `toggle ${value ? 'active' : ''}`;
+      toggle.setAttribute('aria-label', key);
+      toggle.addEventListener('click', () => {
+        const now = toggle.classList.contains('active');
+        toggle.classList.toggle('active');
+        dataCache[section][key] = !now;
+        markDirty(section, key);
+        if (onChange) onChange(!now);
+      });
+      return toggle;
+    }
+
+    function makeSelect(section, key, value, options, onChange) {
+      const wrap = document.createElement('div');
+      wrap.className = 'select-wrap';
+      const sel = document.createElement('select');
+      sel.innerHTML = `<option value="">None</option>${options.map(o =>
+        `<option value="${o.id}" ${value === o.id ? 'selected' : ''}>${o.name}</option>`
+      ).join('')}`;
+      sel.addEventListener('change', () => {
+        dataCache[section][key] = sel.value || null;
+        markDirty(section, key);
+        if (onChange) onChange(sel.value);
+      });
+      wrap.appendChild(sel);
+      return wrap;
+    }
+
+    function makeInput(section, key, value, placeholder) {
+      const input = document.createElement('input');
+      input.className = 'input-field';
+      input.type = 'text';
+      input.value = value || '';
+      input.placeholder = placeholder || '';
+      input.addEventListener('input', () => {
+        dataCache[section][key] = input.value;
+        markDirty(section, key);
+      });
+      return input;
+    }
+
+    function makeSettingRow(label, hint, control) {
+      const row = document.createElement('div');
+      row.className = 'setting-row';
+      const info = document.createElement('div');
+      info.innerHTML = `<div class="setting-label">${label}</div>${hint ? `<div class="setting-hint">${hint}</div>` : ''}`;
+      row.appendChild(info);
+      if (typeof control === 'function') control = control();
+      row.appendChild(control);
+      return row;
+    }
+
+    function renderCard(id, title, description, rows) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `<div class="card-title">${title}</div>${description ? `<div class="card-desc">${description}</div>` : ''}`;
+      const body = document.createElement('div');
+      rows.forEach(r => body.appendChild(r));
+      card.appendChild(body);
+      return card;
+    }
+
+    async function renderOverview() {
+      const container = document.getElementById('tab-overview');
+      if (!guildData) return;
+
+      const g = guildData.guild;
+      const iconUrl = g.icon ? `https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png?size=128` : null;
+
+      container.innerHTML = `
+        <div class="card" style="display:flex;align-items:center;gap:20px;padding:24px;">
+          <div style="width:64px;height:64px;border-radius:50%;background:#2f3136;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;">
+            ${iconUrl ? `<img src="${iconUrl}" style="width:100%;height:100%;object-fit:cover;" />` : g.name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <h1 style="font-size:20px;font-weight:700;color:#f2f3f5;">${g.name}</h1>
+            <div style="display:flex;gap:12px;margin-top:6px;flex-wrap:wrap;">
+              <span style="font-size:13px;color:#949ba4;">👥 ${g.memberCount.toLocaleString()} members</span>
+              <span style="font-size:13px;color:#949ba4;">🆔 ${g.id}</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-grid">
+          ${createStatCard('General Settings', 'Configure prefix, moderation roles, and server-wide bot behavior.', 'general')}
+          ${createStatCard('Welcome Messages', 'Customize join and leave messages, toggle the system on or off.', 'welcome')}
+          ${createStatCard('Leveling System', 'Manage XP rates, level-up rewards, and leaderboard settings.', 'leveling')}
+          ${createStatCard('Bot Status', 'Echo is online and managing this server.', null, true)}
+        </div>
+      `;
+
+      function createStatCard(title, desc, tabId, isStatus) {
+        if (isStatus) {
+          return `
+            <div class="card" style="cursor:default;">
+              <div class="card-title">Bot Status</div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span style="width:10px;height:10px;border-radius:50%;background:#23a55a;"></span>
+                <span style="font-size:14px;font-weight:500;color:#dbdee1;">Online</span>
+              </div>
+              <div style="font-size:13px;color:#949ba4;">
+                Echo is fully operational and managing this server's configuration.
+              </div>
+            </div>`;
+        }
+        return `
+          <div class="card" onclick="navigateToTab('${tabId}');renderTab('${tabId}');" style="cursor:pointer;transition:border-color 0.15s;">
+            <div class="card-title">${title}</div>
+            <div class="card-desc">${desc}</div>
+            <div style="display:flex;justify-content:flex-end;">
+              <span style="font-size:12px;color:#5865F2;font-weight:600;">Configure →</span>
+            </div>
+          </div>`;
+      }
+    }
+
+    async function renderGeneral() {
+      const container = document.getElementById('tab-general');
+      if (!guildData) return;
+      const cfg = dataCache.config || {};
+      const g = guildData.guild;
+
+      let channels = [];
+      let roles = [];
+      try {
+        channels = await apiFetch(`/guilds/${currentGuildId}/channels`);
+        roles = await apiFetch(`/guilds/${currentGuildId}/roles`);
+      } catch (e) {}
+
+      const prefixRow = makeSettingRow('Command Prefix', 'The prefix used for text commands (e.g. "!").', () => {
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'display:flex;align-items:center;gap:8px;';
+        const input = makeInput('config', 'prefix', cfg.prefix, '!');
+        input.style.width = '80px';
+        wrap.appendChild(input);
+        return wrap;
+      });
+
+      const modRow = makeSettingRow('Moderator Role', 'Users with this role can use moderation commands.', () => {
+        return makeSelect('config', 'modRole', cfg.modRole, roles);
+      });
+
+      const adminRow = makeSettingRow('Admin Role', 'Users with this role can use administration commands.', () => {
+        return makeSelect('config', 'adminRole', cfg.adminRole, roles);
+      });
+
+      const autoRow = makeSettingRow('Auto Role', 'Role automatically assigned to new members.', () => {
+        return makeSelect('config', 'autoRole', cfg.autoRole, roles);
+      });
+
+      const birthdayRow = makeSettingRow('Birthday Channel', 'Channel where birthday announcements are posted.', () => {
+        return makeSelect('config', 'birthdayChannelId', cfg.birthdayChannelId, channels);
+      });
+
+      container.innerHTML = '';
+      container.appendChild(renderCard('general-settings', '⚙️ General Settings',
+        'Configure the core bot behavior for this server.', [
+        prefixRow, modRow, adminRow, autoRow, birthdayRow,
+      ]));
+    }
+
+    async function renderWelcome() {
+      const container = document.getElementById('tab-welcome');
+      if (!guildData) return;
+      const wc = dataCache.welcome || {};
+      const g = guildData.guild;
+
+      let channels = [];
+      try { channels = await apiFetch(`/guilds/${currentGuildId}/channels`); } catch (e) {}
+
+      const enabledRow = makeSettingRow('Welcome System', 'Toggle welcome messages on or off.', () => {
+        return makeToggle('welcome', 'enabled', wc.enabled, (val) => {
+          const rows = document.querySelectorAll('.welcome-conditional');
+          rows.forEach(r => r.style.display = val ? '' : 'none');
+        });
+      });
+
+      const condRows = [
+        makeSettingRow('Welcome Channel', 'Channel where welcome messages are sent.', () => {
+          return makeSelect('welcome', 'channelId', wc.channelId, channels);
+        }),
+        makeSettingRow('Welcome Message', 'Message sent when a new member joins. Use {user}, {server}, {memberCount}.', () => {
+          return makeInput('welcome', 'welcomeMessage', wc.welcomeMessage, 'Welcome {user} to {server}!');
+        }),
+        makeSettingRow('Ping on Join', 'Ping the new member in the welcome message.', () => {
+          return makeToggle('welcome', 'welcomePing', wc.welcomePing);
+        }),
+        makeSettingRow('Goodbye System', 'Toggle goodbye/leave messages.', () => {
+          return makeToggle('welcome', 'goodbyeEnabled', wc.goodbyeEnabled, (val) => {
+            const goodbyeRows = document.querySelectorAll('.goodbye-conditional');
+            goodbyeRows.forEach(r => r.style.display = val ? '' : 'none');
+          });
+        }),
+      ];
+
+      const goodbyeRows = [
+        makeSettingRow('Goodbye Channel', 'Channel where goodbye messages are sent.', () => {
+          return makeSelect('welcome', 'goodbyeChannelId', wc.goodbyeChannelId, channels);
+        }),
+        makeSettingRow('Goodbye Message', 'Message sent when a member leaves. Use {user}, {memberCount}.', () => {
+          return makeInput('welcome', 'leaveMessage', wc.leaveMessage, '{user} has left the server.');
+        }),
+      ];
+
+      container.innerHTML = '';
+      const mainCard = renderCard('welcome-main', '👋 Welcome Messages',
+        'Customize the join and leave experience for new members.', [enabledRow]);
+      const condCard = renderCard('welcome-details', 'Welcome Configuration', '', condRows);
+      const goodbyeCard = renderCard('welcome-goodbye', 'Goodbye Messages', '', goodbyeRows);
+
+      container.appendChild(mainCard);
+      container.appendChild(condCard);
+      container.appendChild(goodbyeCard);
+
+      const condEls = document.querySelectorAll('.welcome-conditional');
+      condEls.forEach(r => r.style.display = wc.enabled ? '' : 'none');
+      const goodbyeEls = document.querySelectorAll('.goodbye-conditional');
+      goodbyeEls.forEach(r => r.style.display = wc.goodbyeEnabled ? '' : 'none');
+    }
+
+    async function renderLeveling() {
+      const container = document.getElementById('tab-leveling');
+      if (!guildData) return;
+      const lc = dataCache.leveling || {};
+      const g = guildData.guild;
+
+      let channels = [];
+      try { channels = await apiFetch(`/guilds/${currentGuildId}/channels`); } catch (e) {}
+
+      const enabledRow = makeSettingRow('Leveling System', 'Toggle the XP and leveling system on or off.', () => {
+        return makeToggle('leveling', 'enabled', lc.enabled, (val) => {
+          const rows = document.querySelectorAll('.leveling-conditional');
+          rows.forEach(r => r.style.display = val ? '' : 'none');
+        });
+      });
+
+      const condRows = [
+        makeSettingRow('XP per Message', 'Base XP awarded for each message sent.', () => {
+          return makeInput('leveling', 'xpPerMessage', lc.xpPerMessage, '10');
+        }),
+        makeSettingRow('XP per Minute', 'Maximum XP earnable per minute in the same channel.', () => {
+          return makeInput('leveling', 'xpPerMinute', lc.xpPerMinute, '60');
+        }),
+        makeSettingRow('Cooldown', 'Enforce a cooldown between XP-earning messages.', () => {
+          return makeToggle('leveling', 'cooldownEnabled', lc.cooldownEnabled);
+        }),
+        makeSettingRow('Message Length Bonus', 'Longer messages earn more XP.', () => {
+          return makeToggle('leveling', 'messageLengthMultiplier', lc.messageLengthMultiplier);
+        }),
+        makeSettingRow('Level-Up Messages', 'Announce when a member levels up.', () => {
+          return makeToggle('leveling', 'levelUpMessages', lc.levelUpMessages);
+        }),
+        makeSettingRow('Level-Up Channel', 'Channel for level-up announcements (leave empty for same channel).', () => {
+          return makeSelect('leveling', 'levelUpChannel', lc.levelUpChannel, channels);
+        }),
+      ];
+
+      container.innerHTML = '';
+      const mainCard = renderCard('leveling-main', '📊 Leveling System',
+        'Configure how members earn XP and level up.', [enabledRow]);
+      const detailCard = renderCard('leveling-details', 'XP Configuration', '', condRows);
+
+      container.appendChild(mainCard);
+      container.appendChild(detailCard);
+
+      const condEls = document.querySelectorAll('.leveling-conditional');
+      condEls.forEach(r => r.style.display = lc.enabled ? '' : 'none');
+    }
+
+    async function init() {
+      try {
+        const me = await apiFetch('/auth/me');
+        document.querySelector('.server-header p').textContent = `@${me.username}`;
+      } catch (e) {
+        window.location.href = `${API}/auth/login`;
+        return;
+      }
+      await loadGuildList();
+    }
+
+    init();
+  </script>
+</body>
+</html>
