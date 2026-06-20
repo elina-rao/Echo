@@ -96,7 +96,7 @@ export async function incrementTicketCounter(guildId) {
     return nextCounter.toString().padStart(3, '0');
 }
 
-async function listGuildTickets(guildId) {
+export async function listGuildTickets(guildId) {
     if (!db.initialized) {
         await db.initialize();
     }

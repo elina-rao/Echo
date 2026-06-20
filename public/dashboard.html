@@ -345,6 +345,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           Logging
         </div>
+        <div class="nav-item" data-tab="tickets">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          Tickets
+        </div>
         <div class="nav-item" data-tab="reactionroles">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
           Reaction Roles
@@ -402,6 +406,7 @@
       <div id="tab-leveling" class="tab-content"></div>
       <div id="tab-moderation" class="tab-content"></div>
       <div id="tab-logging" class="tab-content"></div>
+      <div id="tab-tickets" class="tab-content"></div>
       <div id="tab-reactionroles" class="tab-content"></div>
       <div id="tab-verification" class="tab-content"></div>
       <div id="tab-tags" class="tab-content"></div>
@@ -662,7 +667,7 @@
         leveling: renderLeveling, moderation: renderModeration, logging: renderLogging,
         reactionroles: renderReactionRoles, verification: renderVerification,
         economy: renderEconomy, birthday: renderBirthday,
-        counters: renderCounters, jointocreate: renderJoinToCreate, tags: renderTags,
+        tickets: renderTickets, counters: renderCounters, jointocreate: renderJoinToCreate, tags: renderTags,
         dashboardaccess: renderDashboardAccess, starboard: renderStarboard, scheduled: renderScheduled, commandlogs: renderCommandLogs,
       };
       if (fns[tab]) fns[tab]();
@@ -759,13 +764,16 @@
           ${createStatCard('🛡️', 'Moderation', 'Auto-mod, mute, warnings', 'moderation')}
           ${createStatCard('📝', 'Logging', 'Event tracking', 'logging')}
           ${createStatCard('😊', 'Reaction Roles', 'Self-assign roles', 'reactionroles')}
+          ${createStatCard('🔐', 'Dashboard Access', 'Who can access settings', 'dashboardaccess')}
           ${createStatCard('✅', 'Verification', 'Member gatekeeping', 'verification')}
           ${createStatCard('💰', 'Economy', 'Currency, work, daily', 'economy')}
           ${createStatCard('🎂', 'Birthday', 'Announcements, roles', 'birthday')}
           ${createStatCard('📡', 'Counters', 'Live voice stats', 'counters')}
           ${createStatCard('🔊', 'Join-to-Create', 'Temp voice channels', 'jointocreate')}
           ${createStatCard('⭐', 'Starboard', 'Highlight top messages', 'starboard')}
+          ${createStatCard('🎫', 'Tickets', 'Support ticket system', 'tickets')}
           ${createStatCard('📅', 'Scheduled Messages', 'Plan channel messages', 'scheduled')}
+          ${createStatCard(null, 'Command Logs', 'Track command usage', 'commandlogs')}
           ${createStatCard(null, 'Bot Status', 'Echo is online and managing this server.', null, true)}
         </div>
       `;
@@ -1136,27 +1144,207 @@
       container.appendChild(renderCard('log-events', 'Events to Log', '', eventRows));
     }
 
+    /* ───── Tickets ───── */
+
+    async function renderTickets() {
+      const container = document.getElementById('tab-tickets');
+      if (!currentGuildId) return;
+      container.innerHTML = '<div class="card"><div class="card-title">🎫 Tickets</div><div class="skeleton" style="width:200px;height:20px;"></div></div>';
+
+      const cfg = dataCache.config || {};
+      let channels = [];
+      let rolesList = [];
+      try { channels = await apiFetch(`/guilds/${currentGuildId}/channels`); } catch (e) {}
+      try { rolesList = await apiFetch(`/guilds/${currentGuildId}/roles`); } catch (e) {}
+
+      let ticketData;
+      try {
+        ticketData = await apiFetch(`/tickets/${currentGuildId}`);
+      } catch {
+        container.innerHTML = '<div class="card"><div class="card-title">🎫 Tickets</div><div class="card-desc" style="color:#ed4245;">Failed to load tickets.</div></div>';
+        return;
+      }
+
+      const { stats, openTickets, closedTickets } = ticketData;
+
+      const statsHtml = `
+        <div class="card-grid" style="margin-bottom:16px;">
+          <div class="card" style="text-align:center;padding:16px;">
+            <div style="font-size:28px;font-weight:700;color:#f2f3f5;">${stats.openCount}</div>
+            <div style="font-size:12px;color:#949ba4;margin-top:4px;">Open</div>
+          </div>
+          <div class="card" style="text-align:center;padding:16px;">
+            <div style="font-size:28px;font-weight:700;color:#f2f3f5;">${stats.closedCount}</div>
+            <div style="font-size:12px;color:#949ba4;margin-top:4px;">Closed</div>
+          </div>
+          <div class="card" style="text-align:center;padding:16px;">
+            <div style="font-size:28px;font-weight:700;color:#f2f3f5;">${stats.avgRating ? stats.avgRating + ' ⭐' : '—'}</div>
+            <div style="font-size:12px;color:#949ba4;margin-top:4px;">Avg Rating</div>
+          </div>
+          <div class="card" style="text-align:center;padding:16px;">
+            <div style="font-size:28px;font-weight:700;color:#f2f3f5;">${stats.avgCloseTimeMs ? Math.round(stats.avgCloseTimeMs / 3600000) + 'h' : '—'}</div>
+            <div style="font-size:12px;color:#949ba4;margin-top:4px;">Avg Close Time</div>
+          </div>
+        </div>
+      `;
+
+      const panelChannelRow = makeSettingRow('Panel Channel', 'Channel where the Create Ticket button is posted.', () =>
+        makeSelect('config', 'ticketPanelChannelId', cfg.ticketPanelChannelId, channels));
+      const panelMsgRow = makeSettingRow('Panel Message', 'Text above the Create Ticket button.', () =>
+        makeInput('config', 'ticketPanelMessage', cfg.ticketPanelMessage, 'Click the button below to create a support ticket.'));
+      const buttonLabelRow = makeSettingRow('Button Label', 'Text on the Create Ticket button.', () =>
+        makeInput('config', 'ticketButtonLabel', cfg.ticketButtonLabel, 'Create Ticket'));
+      const categoryRow = makeSettingRow('Open Category', 'Category where new ticket channels are created.', () =>
+        makeSelect('config', 'ticketCategoryId', cfg.ticketCategoryId, channels));
+      const closedCategoryRow = makeSettingRow('Closed Category', 'Category where closed tickets are moved.', () =>
+        makeSelect('config', 'ticketClosedCategoryId', cfg.ticketClosedCategoryId, channels));
+      const staffRoleRow = makeSettingRow('Staff Role', 'Role that can view and manage all tickets.', () =>
+        makeSelect('config', 'ticketStaffRoleId', cfg.ticketStaffRoleId, rolesList));
+      const maxTicketsRow = makeSettingRow('Max Tickets/User', 'Maximum open tickets a user can have at once.', () =>
+        makeInput('config', 'maxTicketsPerUser', cfg.maxTicketsPerUser || '3', '3'));
+      const dmOnCloseRow = makeSettingRow('DM on Close', 'Send the user a DM when their ticket is closed.', () =>
+        makeToggle('config', 'dmOnClose', cfg.dmOnClose !== false));
+      const enablePriorityRow = makeSettingRow('Priority System', 'Show priority buttons (Low/High) when creating a ticket.', () =>
+        makeToggle('config', 'enablePriority', cfg.enablePriority));
+      const logsChannelRow = makeSettingRow('Logs Channel', 'Channel for ticket lifecycle events (create/close/claim).', () =>
+        makeSelect('config', 'ticketLogsChannelId', cfg.ticketLogsChannelId, channels));
+      const transcriptChannelRow = makeSettingRow('Transcript Channel', 'Channel where HTML transcripts are posted on ticket deletion.', () =>
+        makeSelect('config', 'ticketTranscriptChannelId', cfg.ticketTranscriptChannelId, channels));
+
+      const settingsCard = renderCard('tkt-settings', '🎫 Ticket Settings',
+        'Configure the ticket system. Panel setup can also be done via <code style="background:#1e1f22;padding:2px 6px;border-radius:3px;color:#b794f4;">/ticket setup</code> in Discord.', [
+        panelChannelRow, panelMsgRow, buttonLabelRow, categoryRow, closedCategoryRow,
+        staffRoleRow, maxTicketsRow, dmOnCloseRow, enablePriorityRow,
+        logsChannelRow, transcriptChannelRow,
+      ]);
+
+      const openHtml = openTickets.length === 0
+        ? '<p style="color:#949ba4;font-style:italic;">No open tickets.</p>'
+        : openTickets.map(t => {
+            const time = Math.floor(new Date(t.createdAt).getTime() / 1000);
+            const claimed = t.claimedBy ? `<span style="color:#23a55a;font-size:11px;">Claimed</span>` : `<span style="color:#949ba4;font-size:11px;">Unclaimed</span>`;
+            return `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#1e1f22;border-radius:4px;margin-bottom:4px;">
+                <div style="flex:1;min-width:0;">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-weight:500;color:#dbdee1;font-size:13px;">${t.reason || 'No reason'}</span>
+                    ${claimed}
+                  </div>
+                  <div style="font-size:11px;color:#949ba4;margin-top:2px;">
+                    <code style="font-size:11px;">${t.userId}</code> · <t:${time}:R>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+      const closedHtml = closedTickets.length === 0
+        ? '<p style="color:#949ba4;font-style:italic;">No closed tickets.</p>'
+        : closedTickets.map(t => {
+            const duration = t.createdAt && t.closedAt
+              ? Math.round((new Date(t.closedAt) - new Date(t.createdAt)) / 3600000) + 'h'
+              : '—';
+            const rating = t.feedback?.rating ? '⭐'.repeat(t.feedback.rating) : '—';
+            return `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#1e1f22;border-radius:4px;margin-bottom:4px;">
+                <div style="flex:1;min-width:0;">
+                  <div style="display:flex;align-items:center;gap:8px;font-size:13px;">
+                    <span style="color:#dbdee1;">${t.reason || 'No reason'}</span>
+                    <span style="color:#5a5d63;font-size:11px;">${rating}</span>
+                  </div>
+                  <div style="font-size:11px;color:#949ba4;margin-top:2px;">
+                    <code style="font-size:11px;">${t.userId}</code> · ${duration} duration
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+      const ticketsCard = document.createElement('div');
+      ticketsCard.className = 'card';
+      ticketsCard.innerHTML = `
+        <div class="card-title">Open Tickets (${openTickets.length})</div>
+        ${openHtml}
+        <div class="card-title" style="margin-top:16px;">Recently Closed (${closedTickets.length})</div>
+        ${closedHtml}
+      `;
+
+      container.innerHTML = '';
+      container.appendChild(statsHtml);
+      container.appendChild(settingsCard);
+      container.appendChild(ticketsCard);
+    }
+
     /* ───── Reaction Roles ───── */
 
     async function renderReactionRoles() {
       const container = document.getElementById('tab-reactionroles');
-      if (!guildData) return;
-      const cfg = dataCache.config || {};
+      if (!currentGuildId) return;
+      container.innerHTML = '<div class="card"><div class="card-title">😊 Reaction Roles</div><div class="skeleton" style="width:200px;height:20px;"></div></div>';
 
+      const cfg = dataCache.config || {};
       let channels = [];
-      let roles = [];
+      let rolesList = [];
       try { channels = await apiFetch(`/guilds/${currentGuildId}/channels`); } catch (e) {}
-      try { roles = await apiFetch(`/guilds/${currentGuildId}/roles`); } catch (e) {}
+      try { rolesList = await apiFetch(`/guilds/${currentGuildId}/roles`); } catch (e) {}
+
+      let panels = [];
+      try {
+        const data = await apiFetch(`/reaction-roles/${currentGuildId}`);
+        panels = data.panels || [];
+      } catch { /* ignore */ }
 
       const enabledRow = makeSettingRow('Reaction Roles', 'Toggle the reaction role system on or off.', () =>
         makeToggle('config', 'reactionRolesEnabled', cfg.reactionRolesEnabled));
 
-      const channelRow = makeSettingRow('Panel Channel', 'Channel where reaction role panels are posted.', () =>
-        makeSelect('config', 'reactionRoleChannelId', cfg.reactionRoleChannelId, channels));
+      const settingsCard = renderCard('rr-main', '😊 Reaction Roles',
+        'Let members assign roles by reacting to messages.', [enabledRow]);
+
+      const panelsHtml = panels.length === 0
+        ? '<p style="color:#949ba4;font-style:italic;">No reaction role panels. Use <code style="background:#1e1f22;padding:2px 6px;border-radius:3px;color:#b794f4;">/reactroles setup</code> in Discord to create one.</p>'
+        : panels.map(p => {
+            const statusBadge = p.messageExists
+              ? '<span style="color:#23a55a;font-size:11px;">● Active</span>'
+              : '<span style="color:#ed4245;font-size:11px;">● Message Deleted</span>';
+            return `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#1e1f22;border-radius:4px;margin-bottom:4px;">
+                <div style="flex:1;min-width:0;">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                    <span style="font-weight:500;color:#dbdee1;">${p.title || 'Untitled Panel'}</span>
+                    ${statusBadge}
+                  </div>
+                  <div style="font-size:12px;color:#949ba4;">
+                    #${p.channelName || 'unknown'} · ${p.roles?.length || 0} roles
+                  </div>
+                  ${p.description ? `<div style="font-size:11px;color:#5a5d63;margin-top:2px;">${p.description.substring(0, 100)}${p.description.length > 100 ? '...' : ''}</div>` : ''}
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="deleteReactionPanel('${p.messageId}')" style="flex-shrink:0;margin-left:12px;">Delete</button>
+              </div>
+            `;
+          }).join('');
+
+      const listCard = document.createElement('div');
+      listCard.className = 'card';
+      listCard.innerHTML = `
+        <div class="card-title">Active Panels</div>
+        <div class="card-desc">Reaction role panels created via <code style="background:#1e1f22;padding:2px 6px;border-radius:3px;color:#b794f4;">/reactroles setup</code> in Discord.</div>
+        ${panelsHtml}
+      `;
 
       container.innerHTML = '';
-      container.appendChild(renderCard('rr-main', '😊 Reaction Roles',
-        'Let members assign roles by reacting to messages.', [enabledRow, channelRow]));
+      container.appendChild(settingsCard);
+      container.appendChild(listCard);
+    }
+
+    async function deleteReactionPanel(messageId) {
+      if (!confirm('Delete this reaction role panel?')) return;
+      try {
+        await apiFetch(`/reaction-roles/${currentGuildId}/${messageId}`, { method: 'DELETE' });
+        showToast('Panel deleted!', 'success');
+        renderReactionRoles();
+      } catch (e) {
+        showToast('Failed to delete: ' + e.message, 'error');
+      }
     }
 
     /* ───── Verification ───── */
@@ -1191,8 +1379,50 @@
 
     async function renderEconomy() {
       const container = document.getElementById('tab-economy');
-      if (!guildData) return;
+      if (!currentGuildId) return;
+      container.innerHTML = '<div class="card"><div class="card-title">💰 Economy</div><div class="skeleton" style="width:200px;height:20px;"></div></div>';
+
       const cfg = dataCache.config || {};
+      let channels = [];
+      let rolesList = [];
+      try { channels = await apiFetch(`/guilds/${currentGuildId}/channels`); } catch (e) {}
+      try { rolesList = await apiFetch(`/guilds/${currentGuildId}/roles`); } catch (e) {}
+
+      let economyData;
+      try {
+        economyData = await apiFetch(`/economy/${currentGuildId}`);
+      } catch {
+        container.innerHTML = '<div class="card"><div class="card-title">💰 Economy</div><div class="card-desc" style="color:#ed4245;">Failed to load economy data.</div></div>';
+        return;
+      }
+
+      const { stats, config: ecoCfg } = economyData;
+
+      const statsHtml = `
+        <div class="card-grid" style="margin-bottom:16px;">
+          <div class="card" style="text-align:center;padding:16px;">
+            <div style="font-size:28px;font-weight:700;color:#f2f3f5;">${stats.totalUsers}</div>
+            <div style="font-size:12px;color:#949ba4;margin-top:4px;">Total Users</div>
+          </div>
+          <div class="card" style="text-align:center;padding:16px;">
+            <div style="font-size:28px;font-weight:700;color:#f2f3f5;">${stats.totalCoins.toLocaleString()}</div>
+            <div style="font-size:12px;color:#949ba4;margin-top:4px;">Total ◈ in Circulation</div>
+          </div>
+        </div>
+      `;
+
+      const topBalancesHtml = `
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">Top Balances</div>
+          ${stats.topBalances.length === 0 ? '<div style="color:#949ba4;font-size:13px;">No data yet.</div>' :
+            stats.topBalances.map((u, i) => `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #2f3136;">
+                <span style="font-size:13px;color:#dbdee1;"><span style="color:#949ba4;width:20px;display:inline-block;">${i + 1}.</span> <code style="font-size:11px;">${u.userId}</code></span>
+                <span style="font-size:13px;color:#f2f3f5;font-weight:600;">${u.total.toLocaleString()} ◈</span>
+              </div>
+            `).join('')}
+        </div>
+      `;
 
       const enabledRow = makeSettingRow('Economy System', 'Toggle the economy and currency system.', () =>
         makeToggle('config', 'economyEnabled', cfg.economyEnabled));
@@ -1213,11 +1443,92 @@
       const dailyRow = makeSettingRow('Daily Reward', '◈ earned from /daily command.', () =>
         makeInput('config', 'economyDaily', cfg.economyDaily, '100'));
 
+      const premiumRoleRow = makeSettingRow('Premium Role', 'Role granted when purchasing the <code style="background:#1e1f22;padding:1px 4px;border-radius:3px;color:#b794f4;">premium_role</code> shop item.', () =>
+        makeSelect('config', 'economyPremiumRoleId', cfg.economyPremiumRoleId, rolesList));
+
+      const settingsCard = renderCard('eco-settings', '💰 Economy Settings',
+        'Configure the ◈ currency, work, premium role, and daily rewards.', [
+        enabledRow, workRangeRow, dailyRow, premiumRoleRow,
+      ]);
+
+      /* ───── Shop Items ───── */
+
+      const shopItems = ecoCfg.shopItems || [];
+      const shopRows = shopItems.length === 0
+        ? '<p style="color:#949ba4;font-style:italic;">No custom shop items. Add one below.</p>'
+        : shopItems.map((item, i) => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#1e1f22;border-radius:4px;margin-bottom:4px;">
+              <div style="flex:1;min-width:0;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span>${item.emoji || '🛒'}</span>
+                  <span style="font-weight:500;color:#dbdee1;">${item.name}</span>
+                  <span style="color:#b794f4;font-weight:600;">${Number(item.price).toLocaleString()} ◈</span>
+                </div>
+                ${item.description ? `<div style="font-size:12px;color:#949ba4;margin-top:2px;">${item.description}</div>` : ''}
+              </div>
+              <button class="btn btn-danger btn-sm" onclick="deleteShopItem('${item.id}')">Delete</button>
+            </div>
+          `).join('');
+
+      const shopCard = document.createElement('div');
+      shopCard.className = 'card';
+      shopCard.innerHTML = `
+        <div class="card-title">Shop Items</div>
+        <div class="card-desc">Custom shop items for this server. These appear alongside the default shop items.</div>
+        ${shopRows}
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid #2f3136;">
+          <div style="font-size:13px;font-weight:600;color:#dbdee1;margin-bottom:8px;">Add Item</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <input class="input-field" id="shopName" placeholder="Item name" style="width:100%;">
+            <input class="input-field" id="shopPrice" placeholder="Price" type="number" style="width:100%;">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+            <input class="input-field" id="shopEmoji" placeholder="Emoji (e.g. 🎮)" style="width:100%;">
+            <input class="input-field" id="shopDesc" placeholder="Description" style="width:100%;">
+          </div>
+          <button class="btn btn-primary" onclick="addShopItem()" style="margin-top:8px;">Add Item</button>
+        </div>
+      `;
+
       container.innerHTML = '';
-      container.appendChild(renderCard('eco-main', '💰 Economy Settings',
-        'Configure the ◈ currency, work, and daily rewards.', [
-        enabledRow, workRangeRow, dailyRow,
-      ]));
+      container.appendChild(statsHtml);
+      container.appendChild(topBalancesHtml);
+      container.appendChild(settingsCard);
+      container.appendChild(shopCard);
+    }
+
+    async function addShopItem() {
+      const name = document.getElementById('shopName')?.value?.trim();
+      const price = document.getElementById('shopPrice')?.value;
+      const emoji = document.getElementById('shopEmoji')?.value?.trim() || '🛒';
+      const desc = document.getElementById('shopDesc')?.value?.trim() || '';
+
+      if (!name || !price) {
+        showToast('Name and price are required.', 'error');
+        return;
+      }
+
+      try {
+        await apiFetch(`/economy/${currentGuildId}/shop`, {
+          method: 'POST',
+          body: JSON.stringify({ name, price: Number(price), emoji, description: desc }),
+        });
+        showToast('Shop item added!', 'success');
+        renderEconomy();
+      } catch (e) {
+        showToast('Failed to add: ' + e.message, 'error');
+      }
+    }
+
+    async function deleteShopItem(itemId) {
+      if (!confirm('Delete this shop item?')) return;
+      try {
+        await apiFetch(`/economy/${currentGuildId}/shop/${itemId}`, { method: 'DELETE' });
+        showToast('Item deleted!', 'success');
+        renderEconomy();
+      } catch (e) {
+        showToast('Failed to delete: ' + e.message, 'error');
+      }
     }
 
     /* ───── Birthday ───── */

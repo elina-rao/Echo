@@ -411,6 +411,209 @@ router.get('/scheduled/:guildId', requireAuth, async (req, res) => {
   }
 });
 
+/* ───── Tickets ───── */
+
+router.get('/tickets/:guildId', requireAuth, async (req, res) => {
+  try {
+    const { getGuildTicketStats, listGuildTickets } = await import('../utils/database/tickets.js');
+    const { guildId } = req.params;
+    const client = getClient(req);
+    const config = await fetchGuildConfig(client, guildId);
+
+    const ticketConfig = {
+      panelChannelId: config.ticketPanelChannelId || null,
+      panelMessageId: config.ticketPanelMessageId || null,
+      panelMessage: config.ticketPanelMessage || 'Click the button below to create a support ticket.',
+      buttonLabel: config.ticketButtonLabel || 'Create Ticket',
+      categoryId: config.ticketCategoryId || null,
+      closedCategoryId: config.ticketClosedCategoryId || null,
+      staffRoleId: config.ticketStaffRoleId || null,
+      logsChannelId: config.ticketLogsChannelId || null,
+      transcriptChannelId: config.ticketTranscriptChannelId || null,
+      maxTicketsPerUser: config.maxTicketsPerUser || 3,
+      dmOnClose: config.dmOnClose !== false,
+      enablePriority: config.enablePriority || false,
+    };
+
+    const [stats, tickets] = await Promise.all([
+      getGuildTicketStats(guildId),
+      listGuildTickets(guildId),
+    ]);
+
+    const openTickets = tickets.filter(t => t.status === 'open');
+    const closedTickets = tickets.filter(t => t.status === 'closed').slice(-20);
+
+    res.json({ config: ticketConfig, stats, openTickets, closedTickets });
+  } catch (error) {
+    logger.error(`Failed to fetch tickets for guild ${req.params.guildId}:`, error);
+    res.status(500).json({ error: 'Failed to fetch tickets' });
+  }
+});
+
+/* ───── Reaction Roles ───── */
+
+router.get('/reaction-roles/:guildId', requireAuth, async (req, res) => {
+  try {
+    const { getAllReactionRoleMessages, getReactionRoleMessage } = await import('../services/reactionRoleService.js');
+    const client = getClient(req);
+    const guildId = req.params.guildId;
+    const guild = client?.guilds?.cache?.get(guildId);
+
+    const panels = await getAllReactionRoleMessages(client, guildId);
+
+    const enriched = await Promise.all(panels.map(async (panel) => {
+      const channel = guild?.channels?.cache?.get(panel.channelId);
+      let messageExists = false;
+      let title = '';
+      let description = '';
+
+      if (channel) {
+        try {
+          const msg = await channel.messages.fetch(panel.messageId);
+          messageExists = true;
+          title = msg.embeds?.[0]?.title || '';
+          description = msg.embeds?.[0]?.description || '';
+        } catch {
+          messageExists = false;
+        }
+      }
+
+      const roleIds = Array.isArray(panel.roles)
+        ? panel.roles
+        : (typeof panel.roles === 'object' ? Object.values(panel.roles) : []);
+
+      const roles = roleIds.map(rid => {
+        const r = guild?.roles?.cache?.get(rid);
+        return { id: rid, name: r?.name || 'Unknown', color: r?.hexColor || '#000000' };
+      });
+
+      return {
+        ...panel,
+        title,
+        description,
+        messageExists,
+        channelName: channel?.name || 'deleted-channel',
+        roles,
+      };
+    }));
+
+    res.json({ panels: enriched });
+  } catch (error) {
+    logger.error(`Failed to fetch reaction roles for guild ${req.params.guildId}:`, error);
+    res.status(500).json({ error: 'Failed to fetch reaction roles' });
+  }
+});
+
+router.delete('/reaction-roles/:guildId/:messageId', requireAuth, async (req, res) => {
+  try {
+    const { deleteReactionRoleMessage } = await import('../services/reactionRoleService.js');
+    const client = getClient(req);
+    await deleteReactionRoleMessage(client, req.params.guildId, req.params.messageId);
+    res.json({ success: true });
+  } catch (error) {
+    logger.error(`Failed to delete reaction role panel:`, error);
+    res.status(500).json({ error: 'Failed to delete panel' });
+  }
+});
+
+/* ───── Economy ───── */
+
+router.get('/economy/:guildId', requireAuth, async (req, res) => {
+  try {
+    const client = getClient(req);
+    const guildId = req.params.guildId;
+    const config = await fetchGuildConfig(client, guildId);
+
+    const economyConfig = {
+      enabled: config.economyEnabled !== false,
+      workMin: config.economyWorkMin || 10,
+      workMax: config.economyWorkMax || 100,
+      daily: config.economyDaily || 100,
+      premiumRoleId: config.economyPremiumRoleId || null,
+      shopItems: config.economyShopItems || [],
+    };
+
+    let stats = { totalUsers: 0, totalCoins: 0, topBalances: [] };
+    if (client.db?.db?.pool && typeof client.db.db.isAvailable === 'function' && client.db.db.isAvailable()) {
+      const { pgConfig } = await import('../../config/postgres.js');
+      const topResult = await client.db.db.pool.query(
+        `SELECT user_id, (data->>'wallet')::bigint + (data->>'bank')::bigint AS total
+         FROM ${pgConfig.tables.economy}
+         WHERE guild_id = $1
+         ORDER BY total DESC LIMIT 10`,
+        [guildId],
+      );
+      const countResult = await client.db.db.pool.query(
+        `SELECT COUNT(*)::int AS count, COALESCE(SUM((data->>'wallet')::bigint + (data->>'bank')::bigint), 0)::bigint AS total
+         FROM ${pgConfig.tables.economy}
+         WHERE guild_id = $1`,
+        [guildId],
+      );
+
+      stats = {
+        totalUsers: Number(countResult.rows[0]?.count || 0),
+        totalCoins: Number(countResult.rows[0]?.total || 0),
+        topBalances: topResult.rows.map(r => ({
+          userId: r.user_id,
+          total: Number(r.total),
+        })),
+      };
+    }
+
+    res.json({ config: economyConfig, stats });
+  } catch (error) {
+    logger.error(`Failed to fetch economy for guild ${req.params.guildId}:`, error);
+    res.status(500).json({ error: 'Failed to fetch economy data' });
+  }
+});
+
+router.post('/economy/:guildId/shop', requireAuth, async (req, res) => {
+  try {
+    const client = getClient(req);
+    const guildId = req.params.guildId;
+    const item = req.body;
+
+    if (!item.name || !item.price) {
+      return res.status(400).json({ error: 'Item must have a name and price' });
+    }
+
+    const config = await fetchGuildConfig(client, guildId);
+    const items = config.economyShopItems || [];
+    const newItem = {
+      id: item.id || `shop_${Date.now()}`,
+      name: item.name,
+      price: Number(item.price),
+      description: item.description || '',
+      emoji: item.emoji || '🛒',
+      roleId: item.roleId || null,
+      type: item.type || 'role',
+    };
+    items.push(newItem);
+    config.economyShopItems = items;
+    await saveGuildConfig(client, guildId, config);
+    res.json({ success: true, item: newItem });
+  } catch (error) {
+    logger.error(`Failed to add shop item:`, error);
+    res.status(500).json({ error: 'Failed to add shop item' });
+  }
+});
+
+router.delete('/economy/:guildId/shop/:itemId', requireAuth, async (req, res) => {
+  try {
+    const client = getClient(req);
+    const guildId = req.params.guildId;
+    const itemId = req.params.itemId;
+    const config = await fetchGuildConfig(client, guildId);
+    const items = (config.economyShopItems || []).filter(i => i.id !== itemId);
+    config.economyShopItems = items;
+    await saveGuildConfig(client, guildId, config);
+    res.json({ success: true });
+  } catch (error) {
+    logger.error(`Failed to delete shop item:`, error);
+    res.status(500).json({ error: 'Failed to delete shop item' });
+  }
+});
+
 router.post('/auth/logout', (req, res) => {
   req.session.destroy(err => {
     if (err) {
