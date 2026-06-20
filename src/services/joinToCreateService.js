@@ -741,6 +741,53 @@ export async function claimOwnership(client, guildId, channelId, memberId) {
     return true;
 }
 
+export async function promoteUser(client, guildId, channelId, ownerId, targetUserId) {
+    const config = await getJoinToCreateConfig(client, guildId);
+    const tempInfo = config.temporaryChannels?.[channelId];
+    if (!tempInfo) {
+        throw new TitanBotError('Channel is not a temporary voice channel.', ErrorTypes.VALIDATION, 'This is not a temporary voice channel.');
+    }
+    if (tempInfo.ownerId !== ownerId) {
+        throw new TitanBotError('You do not own this channel.', ErrorTypes.VALIDATION, 'Only the channel owner can promote someone.');
+    }
+    if (targetUserId === ownerId) {
+        throw new TitanBotError('You already own this channel.', ErrorTypes.VALIDATION, 'You cannot promote yourself.');
+    }
+
+    const guild = client.guilds.cache.get(guildId);
+    const channel = guild?.channels.cache.get(channelId);
+    if (!channel) {
+        throw new TitanBotError('Channel not found.', ErrorTypes.VALIDATION, 'Could not find that voice channel.');
+    }
+
+    const targetMember = guild?.members.cache.get(targetUserId);
+    if (targetMember?.voice?.channelId !== channelId) {
+        throw new TitanBotError('User is not in your VC.', ErrorTypes.VALIDATION, 'That user must be in your VC to be promoted.');
+    }
+
+    const oldOwnerId = tempInfo.ownerId;
+    config.temporaryChannels[channelId] = { ...tempInfo, ownerId: targetUserId };
+    await saveJoinToCreateConfig(client, guildId, config);
+
+    try {
+        const nameTemplate = config.channelOptions?.[tempInfo.triggerChannelId]?.nameTemplate || config.channelNameTemplate || "{username}'s Room";
+        const newName = formatChannelName(nameTemplate, {
+            username: targetMember.user.username,
+            userTag: targetMember.user.tag,
+            displayName: targetMember.displayName,
+            guildName: guild.name,
+            channelName: 'Voice',
+        });
+        await channel.setName(newName, `Ownership promoted to ${targetUserId}`);
+    } catch {
+        // renaming is best-effort
+    }
+
+    logger.info(`Ownership of temporary channel ${channelId} transferred from ${oldOwnerId} to ${targetUserId} via promote`);
+
+    return true;
+}
+
 export default {
     validateChannelNameTemplate,
     validateBitrate,
@@ -761,4 +808,5 @@ export default {
     denyUser,
     kickUser,
     claimOwnership,
+    promoteUser,
 };

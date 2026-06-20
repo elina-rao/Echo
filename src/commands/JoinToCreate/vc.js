@@ -9,6 +9,7 @@ import {
     denyUser,
     kickUser,
     claimOwnership,
+    promoteUser,
 } from '../../services/joinToCreateService.js';
 
 export default {
@@ -54,6 +55,14 @@ export default {
             subcommand
                 .setName("claim")
                 .setDescription("Claim ownership of an abandoned temporary VC.")
+        )
+        .addSubcommand((subcommand) =>
+            subcommand
+                .setName("promote")
+                .setDescription("Transfer VC ownership to another member in the channel.")
+                .addUserOption((option) =>
+                    option.setName("user").setDescription("The new owner.").setRequired(true)
+                )
         )
         .addSubcommand((subcommand) =>
             subcommand
@@ -206,6 +215,29 @@ export default {
                     await claimOwnership(client, guild.id, voiceChannel.id, member.id);
                     await interaction.reply({
                         embeds: [successEmbed('👑 You are now the owner of this VC.')],
+                        flags: 64,
+                    });
+                    break;
+                }
+
+                case 'promote': {
+                    const promoteTarget = interaction.options.getUser('user');
+                    const promoteMember = guild.members.cache.get(promoteTarget.id);
+                    if (promoteTarget.id === member.id) {
+                        return interaction.reply({
+                            embeds: [warningEmbed('You cannot promote yourself.')],
+                            flags: 64,
+                        });
+                    }
+                    if (promoteMember?.voice?.channelId !== voiceChannel.id) {
+                        return interaction.reply({
+                            embeds: [warningEmbed(`${promoteTarget.username} is not in your VC.`)],
+                            flags: 64,
+                        });
+                    }
+                    await promoteUser(client, guild.id, voiceChannel.id, member.id, promoteTarget.id);
+                    await interaction.reply({
+                        embeds: [successEmbed(`👑 Transferred ownership to ${promoteTarget.username}.`)],
                         flags: 64,
                     });
                     break;
