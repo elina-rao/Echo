@@ -1,7 +1,8 @@
 import { Events, EmbedBuilder, PermissionFlagsBits } from 'discord.js';
 import { getColor } from '../config/bot.js';
 import { getGuildConfig } from '../services/guildConfig.js';
-import { getWelcomeConfig } from '../utils/database.js';
+import { getWelcomeConfig, updateWelcomeConfig } from '../utils/database.js';
+import { findUsedInvite, trackMemberJoin, cacheGuildInvites } from '../services/inviteService.js';
 import { formatWelcomeMessage } from '../utils/welcome.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { getServerCounters, updateCounter } from '../services/serverstatsService.js';
@@ -49,8 +50,18 @@ export default {
 
                 const canEmbed = permissions.has(PermissionFlagsBits.EmbedLinks);
 
+                if (welcomeConfig.lastWelcomeMessageId) {
+                    try {
+                        const oldMsg = await channel.messages.fetch(welcomeConfig.lastWelcomeMessageId);
+                        if (oldMsg) await oldMsg.delete();
+                    } catch {
+                        // Old message might already be deleted — ignore
+                    }
+                }
+
+                let sentMsg;
                 if (!canEmbed) {
-                    await channel.send({
+                    sentMsg = await channel.send({
                         content: messageContent || welcomeMessage
                     });
                 } else {
@@ -72,10 +83,18 @@ export default {
                         embed.setImage(welcomeConfig.welcomeEmbed.image.url);
                     }
                     
-                    await channel.send({ 
+                    sentMsg = await channel.send({ 
                         content: messageContent,
                         embeds: [embed] 
                     });
+                }
+
+                try {
+                    await updateWelcomeConfig(member.client, guild.id, {
+                        lastWelcomeMessageId: sentMsg.id,
+                    });
+                } catch {
+                    // Non-critical
                 }
             }
         }
@@ -151,6 +170,18 @@ export default {
             }
         } catch (error) {
             logger.debug('Error restoring birthday on member join:', error);
+        }
+
+        try {
+            const usedInvite = await findUsedInvite(guild);
+            if (usedInvite && usedInvite.inviter) {
+                await trackMemberJoin(
+                    member.client, guild.id, user.id,
+                    usedInvite.inviter.id, usedInvite.code
+                );
+            }
+        } catch (error) {
+            logger.debug('Error tracking invite on member join:', error);
         }
         
     } catch (error) {

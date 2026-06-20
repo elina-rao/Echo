@@ -17,7 +17,6 @@
   "dependencies": {
     "@discordjs/rest": "^2.6.1",
     "axios": "^1.15.2",
-    "connect-pg-simple": "^10.0.0",
     "discord.js": "^14.26.4",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
