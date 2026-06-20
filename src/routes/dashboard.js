@@ -265,7 +265,6 @@ router.post('/settings/:guildId', requireAuth, requireDashboardAccess, async (re
       const ok = await saveGuildConfig(client, guildId, body.config);
       if (ok) {
         results.config = true;
-        await client.db.delete(`guild:${guildId}:config`);
       } else {
         errors.push('Failed to save guild config');
       }
@@ -275,7 +274,6 @@ router.post('/settings/:guildId', requireAuth, requireDashboardAccess, async (re
       const ok = await persistWelcomeConfig(client, guildId, body.welcome);
       if (ok) {
         results.welcome = true;
-        await client.db.delete(`guild:${guildId}:welcome`);
       } else {
         errors.push('Failed to save welcome config');
       }
@@ -285,7 +283,6 @@ router.post('/settings/:guildId', requireAuth, requireDashboardAccess, async (re
       const ok = await persistLevelingConfig(client, guildId, body.leveling);
       if (ok) {
         results.leveling = true;
-        await client.db.delete(`guild:${guildId}:leveling:config`);
       } else {
         errors.push('Failed to save leveling config');
       }
@@ -325,7 +322,6 @@ router.put('/settings/:guildId/access-roles', requireAuth, async (req, res) => {
     config.dashboardAccessRoles = roleIds;
     const saved = await saveGuildConfig(client, guildId, config);
     if (saved) {
-      await client.db.delete(`guild:${guildId}:config`);
       res.json({ success: true, roleIds });
     } else {
       res.status(500).json({ error: 'Failed to save access roles' });
