@@ -161,6 +161,7 @@ class TitanBot extends Client {
 
     app.get('/health', (req, res) => {
       const dbStatus = this.db?.getStatus?.() || { isDegraded: 'unknown' };
+      const pgFailure = this.db?.getLastPgFailure?.() || null;
       const status = {
         status: 'healthy',
         timestamp: new Date().toISOString(),
@@ -168,7 +169,8 @@ class TitanBot extends Client {
         database: {
           connected: dbStatus.connectionType !== 'none',
           degraded: dbStatus.isDegraded,
-          type: dbStatus.connectionType
+          type: dbStatus.connectionType,
+          pgError: pgFailure,
         }
       };
       res.status(200).json(status);

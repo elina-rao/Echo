@@ -142,6 +142,13 @@ class DatabaseWrapper {
     getConnectionType() {
         return this.connectionType;
     }
+
+    getLastPgFailure() {
+        if (pgDb && typeof pgDb.getLastFailure === 'function') {
+            return pgDb.getLastFailure();
+        }
+        return null;
+    }
 }
 
 export const db = new DatabaseWrapper();
