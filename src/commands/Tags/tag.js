@@ -17,7 +17,6 @@ export default {
       sub
         .setName('create')
         .setDescription('Create a new tag')
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
         .addStringOption(o => o.setName('name').setDescription('Tag name').setRequired(true))
         .addStringOption(o => o.setName('content').setDescription('Tag content').setRequired(true)),
     )
@@ -25,7 +24,6 @@ export default {
       sub
         .setName('edit')
         .setDescription('Edit an existing tag')
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
         .addStringOption(o => o.setName('name').setDescription('Tag name').setRequired(true).setAutocomplete(true))
         .addStringOption(o => o.setName('content').setDescription('New tag content').setRequired(true)),
     )
@@ -33,7 +31,6 @@ export default {
       sub
         .setName('delete')
         .setDescription('Delete a tag')
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
         .addStringOption(o => o.setName('name').setDescription('Tag name').setRequired(true).setAutocomplete(true)),
     )
     .addSubcommand(sub =>
@@ -45,6 +42,16 @@ export default {
   async execute(interaction) {
     const sub = interaction.options.getSubcommand();
     const guildId = interaction.guildId;
+    const member = interaction.member;
+
+    if (['create', 'edit', 'delete'].includes(sub)) {
+      if (!member.permissions?.has(PermissionFlagsBits.ManageMessages)) {
+        return InteractionHelper.safeEditReply(interaction, {
+          content: 'You need **Manage Messages** permission to manage tags.',
+          flags: 64,
+        });
+      }
+    }
 
     if (sub === 'show') {
       const name = interaction.options.getString('name');

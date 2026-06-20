@@ -373,6 +373,14 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
           Join-to-Create
         </div>
+        <div class="nav-item" data-tab="starboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Starboard
+        </div>
+        <div class="nav-item" data-tab="scheduled">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Scheduled Messages
+        </div>
       </div>
       <div class="user-section" id="userSection" style="display:none;">
         <div class="user-avatar" id="userAvatar"><img src="https://i.ibb.co/pBGZwnJK/echo-pfp-v4.png" alt="" /></div>
@@ -397,6 +405,8 @@
       <div id="tab-birthday" class="tab-content"></div>
       <div id="tab-counters" class="tab-content"></div>
       <div id="tab-jointocreate" class="tab-content"></div>
+      <div id="tab-starboard" class="tab-content"></div>
+      <div id="tab-scheduled" class="tab-content"></div>
     </main>
   </div>
 
@@ -559,7 +569,7 @@
     }
 
     async function loadSettings(guildId) {
-      for (const tab of ['overview', 'general', 'welcome', 'leveling', 'moderation', 'logging', 'reactionroles', 'verification', 'tags', 'economy', 'birthday', 'counters', 'jointocreate', 'dashboardaccess']) {
+      for (const tab of ['overview', 'general', 'welcome', 'leveling', 'moderation', 'logging', 'reactionroles', 'verification', 'tags', 'economy', 'birthday', 'counters', 'jointocreate', 'dashboardaccess', 'starboard', 'scheduled']) {
         document.getElementById(`tab-${tab}`).innerHTML = `
           <div class="loading-overlay">
             <div style="width:60%;height:20px;margin-bottom:12px;" class="skeleton"></div>
@@ -602,7 +612,7 @@
         const activeTab = document.querySelector('.tab-content.active')?.id?.replace('tab-', '') || 'overview';
         renderTab(activeTab);
       } catch (e) {
-        const allTabs = ['overview', 'general', 'welcome', 'leveling', 'moderation', 'logging', 'reactionroles', 'verification', 'tags', 'economy', 'birthday', 'counters', 'jointocreate', 'dashboardaccess'];
+        const allTabs = ['overview', 'general', 'welcome', 'leveling', 'moderation', 'logging', 'reactionroles', 'verification', 'tags', 'economy', 'birthday', 'counters', 'jointocreate', 'dashboardaccess', 'starboard', 'scheduled'];
         const is403 = e.message?.includes('403') || e.message?.includes('Access denied');
         for (const tab of allTabs) {
           document.getElementById(`tab-${tab}`).innerHTML = is403 ? `
@@ -646,7 +656,7 @@
         reactionroles: renderReactionRoles, verification: renderVerification,
         economy: renderEconomy, birthday: renderBirthday,
         counters: renderCounters, jointocreate: renderJoinToCreate, tags: renderTags,
-        dashboardaccess: renderDashboardAccess,
+        dashboardaccess: renderDashboardAccess, starboard: renderStarboard, scheduled: renderScheduled,
       };
       if (fns[tab]) fns[tab]();
     }
@@ -747,6 +757,8 @@
           ${createStatCard('🎂', 'Birthday', 'Announcements, roles', 'birthday')}
           ${createStatCard('📡', 'Counters', 'Live voice stats', 'counters')}
           ${createStatCard('🔊', 'Join-to-Create', 'Temp voice channels', 'jointocreate')}
+          ${createStatCard('⭐', 'Starboard', 'Highlight top messages', 'starboard')}
+          ${createStatCard('📅', 'Scheduled Messages', 'Plan channel messages', 'scheduled')}
           ${createStatCard(null, 'Bot Status', 'Echo is online and managing this server.', null, true)}
         </div>
       `;
@@ -1276,6 +1288,73 @@
         'Let members create temporary voice channels by joining a designated channel.', [
         enabledRow, channelRow,
       ]));
+    }
+
+    /* ───── Starboard ───── */
+
+    async function renderStarboard() {
+      const container = document.getElementById('tab-starboard');
+      if (!guildData) return;
+      const cfg = dataCache.config || {};
+
+      let channels = [];
+      try { channels = await apiFetch(`/guilds/${currentGuildId}/channels`); } catch (e) {}
+
+      const enabledRow = makeSettingRow('Starboard', 'Toggle the starboard system on or off.', () =>
+        makeToggle('config', 'starboardEnabled', cfg.starboardEnabled));
+
+      const channelRow = makeSettingRow('Starboard Channel', 'Channel where starred messages are posted.', () =>
+        makeSelect('config', 'starboardChannelId', cfg.starboardChannelId, channels));
+
+      const emojiRow = makeSettingRow('Star Emoji', 'The emoji used to star messages (default ⭐).', () =>
+        makeInput('config', 'starboardEmoji', cfg.starboardEmoji || '⭐', '⭐'));
+
+      const thresholdRow = makeSettingRow('Star Threshold', 'Minimum stars required before a message appears on the starboard.', () =>
+        makeInput('config', 'starboardThreshold', cfg.starboardThreshold || '3', '3'));
+
+      container.innerHTML = '';
+      container.appendChild(renderCard('sb-main', '⭐ Starboard',
+        'Let members highlight the best messages. Messages that reach the star threshold get posted to the starboard channel.', [
+        enabledRow, channelRow, emojiRow, thresholdRow,
+      ]));
+    }
+
+    /* ───── Scheduled Messages ───── */
+
+    async function renderScheduled() {
+      const container = document.getElementById('tab-scheduled');
+      if (!currentGuildId) return;
+      container.innerHTML = '<div class="card"><div class="card-title">📅 Scheduled Messages</div><div class="skeleton" style="width:200px;height:20px;"></div></div>';
+
+      let scheduled = [];
+      try {
+        const data = await apiFetch(`/scheduled/${currentGuildId}`);
+        scheduled = data.messages || [];
+      } catch {
+        container.innerHTML = '<div class="card"><div class="card-title">📅 Scheduled Messages</div><div class="card-desc" style="color:#ed4245;">Failed to load scheduled messages.</div></div>';
+        return;
+      }
+
+      const listHtml = scheduled.length === 0
+        ? '<p style="color:#949ba4;font-style:italic;">No scheduled messages. Use <code style="background:#1e1f22;padding:2px 6px;border-radius:3px;color:#b794f4;">/schedule create</code> in Discord to schedule one.</p>'
+        : scheduled.sort((a, b) => a.scheduledAt - b.scheduledAt).map(m => {
+            const time = Math.floor(m.scheduledAt / 1000);
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#1e1f22;border-radius:4px;margin-bottom:4px;">
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:12px;color:#949ba4;margin-bottom:4px;"><code style="font-size:11px;">${m.id}</code> — <t:${time}:R> → <code style="font-size:11px;">#${m.channelId}</code></div>
+                <div style="font-size:13px;color:#dbdee1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.content}</div>
+              </div>
+            </div>`;
+          }).join('');
+
+      const html = `
+        <div class="card">
+          <div class="card-title">📅 Scheduled Messages</div>
+          <div class="card-desc">Messages scheduled via <code style="background:#1e1f22;padding:2px 6px;border-radius:3px;color:#b794f4;">/schedule create</code> in Discord show up here.</div>
+          ${listHtml}
+        </div>
+      `;
+      container.innerHTML = html;
     }
 
     async function logout() {

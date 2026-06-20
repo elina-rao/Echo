@@ -15,6 +15,8 @@ import { getServerCounters, saveServerCounters, updateCounter } from './services
 import { logger, startupLog, shutdownLog } from './utils/logger.js';
 import { checkBirthdays } from './services/birthdayService.js';
 import { checkGiveaways } from './services/giveawayService.js';
+import { checkReminders } from './services/reminderService.js';
+import { checkScheduledMessages } from './services/scheduledMessageService.js';
 import { loadCommands, registerCommands as registerSlashCommands } from './handlers/commandLoader.js';
 import pkg from '../package.json' with { type: 'json' };
 
@@ -265,6 +267,8 @@ class TitanBot extends Client {
     cron.schedule('0 6 * * *', () => checkBirthdays(this));
     cron.schedule('* * * * *', () => checkGiveaways(this));
     cron.schedule('*/15 * * * *', () => this.updateAllCounters());
+    cron.schedule('* * * * *', () => checkReminders(this));
+    cron.schedule('* * * * *', () => checkScheduledMessages(this));
   }
 
   async updateAllCounters() {

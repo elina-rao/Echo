@@ -68,3 +68,19 @@ export function getJoinToCreateConfigKey(guildId) {
 export function getJoinToCreateChannelsKey(guildId) {
     return `guild:${guildId}:jointocreate:channels`;
 }
+
+export function getStarboardKey(guildId) {
+    return `guild:${guildId}:starboard`;
+}
+
+export function getStarboardMessageKey(guildId, messageId) {
+    return `guild:${guildId}:starboard:${messageId}`;
+}
+
+export function getReminderKey(guildId, userId) {
+    return `guild:${guildId}:reminders:${userId}`;
+}
+
+export function getScheduledMessagesKey(guildId) {
+    return `guild:${guildId}:scheduled`;
+}

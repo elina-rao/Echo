@@ -343,6 +343,17 @@ router.get('/tags/:guildId', requireAuth, async (req, res) => {
   }
 });
 
+router.get('/scheduled/:guildId', requireAuth, async (req, res) => {
+  try {
+    const { getScheduledMessages } = await import('../services/scheduledMessageService.js');
+    const messages = await getScheduledMessages(req.app.get('discordClient'), req.params.guildId);
+    res.json({ messages });
+  } catch (error) {
+    logger.error(`Failed to fetch scheduled messages for guild ${req.params.guildId}:`, error);
+    res.status(500).json({ error: 'Failed to fetch scheduled messages' });
+  }
+});
+
 router.post('/auth/logout', (req, res) => {
   req.session.destroy(err => {
     if (err) {

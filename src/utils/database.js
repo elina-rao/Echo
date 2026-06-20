@@ -34,6 +34,10 @@ export {
     getApplicationKey,
     getJoinToCreateConfigKey,
     getJoinToCreateChannelsKey,
+    getStarboardKey,
+    getStarboardMessageKey,
+    getReminderKey,
+    getScheduledMessagesKey,
 } from './database/keys.js';
 
 export {
@@ -58,6 +62,10 @@ import {
     getApplicationKey,
     getJoinToCreateConfigKey,
     getJoinToCreateChannelsKey,
+    getStarboardKey,
+    getStarboardMessageKey,
+    getReminderKey,
+    getScheduledMessagesKey,
     getWelcomeConfigKey,
     getEconomyKey,
     getAFKKey,

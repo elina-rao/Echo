@@ -2,6 +2,7 @@ import { Events, PermissionsBitField } from 'discord.js';
 import { getGuildConfig } from '../services/guildConfig.js';
 import { logEvent, EVENT_TYPES } from '../services/loggingService.js';
 import { logger } from '../utils/logger.js';
+import { handleStarReactionRemove } from '../services/starboardService.js';
 
 export default {
   name: Events.MessageReactionRemove,
@@ -24,8 +25,13 @@ export default {
       if (!guild) return;
 
       const config = await getGuildConfig(message.client, guild.id);
+
+      await handleStarReactionRemove(reaction, user);
+
       const bindings = config.emojiReactions;
-      if (!bindings || bindings.length === 0) return;
+      if (!bindings || !bindings.length) {
+        return;
+      }
 
       const emojiName = emoji.id ? `<:${emoji.name}:${emoji.id}>` : emoji.name;
 
