@@ -545,7 +545,8 @@
           </div>
         `).join('');
         if (!currentGuildId && guilds.length > 0) {
-          selectGuild(guilds[0].id);
+          const firstActive = guilds.find(g => g.botActive) || guilds[0];
+          selectGuild(firstActive.id);
         }
       } catch (e) {
         document.getElementById('serverList').innerHTML = `
