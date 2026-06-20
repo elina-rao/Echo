@@ -12,6 +12,7 @@ import { isCommandEnabled } from '../services/commandAccessService.js';
 import { resolveSlashAccessKey } from '../utils/messageAdapter.js';
 import { isCollectorManagedComponent } from '../utils/collectorComponents.js';
 import { ResponseCoordinator } from '../utils/responseCoordinator.js';
+import { insertCommandLog } from '../utils/database/commandLogs.js';
 
 function withTraceContext(context = {}, traceContext = {}) {
   return {
@@ -94,6 +95,11 @@ export default {
             }
 
             await command.execute(interaction, guildConfig, client);
+
+            if (interaction.guildId) {
+              const cmdOptions = interaction.options?.data || [];
+              insertCommandLog(client, interaction.guildId, interaction.user.id, interaction.user.tag, interaction.commandName, cmdOptions);
+            }
           } catch (error) {
             await handleInteractionError(interaction, error, withTraceContext({
               type: 'command',

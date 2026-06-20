@@ -380,6 +380,16 @@ class PostgreSQLDatabase {
                 value JSONB NOT NULL,
                 expires_at TIMESTAMP,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            
+            `CREATE TABLE IF NOT EXISTS ${pgConfig.tables.command_logs} (
+                id SERIAL PRIMARY KEY,
+                guild_id VARCHAR(20) NOT NULL,
+                user_id VARCHAR(20) NOT NULL,
+                user_tag VARCHAR(100),
+                command_name VARCHAR(100) NOT NULL,
+                options JSONB DEFAULT '{}',
+                executed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`
         ];
 
@@ -416,7 +426,8 @@ class PostgreSQLDatabase {
             `CREATE INDEX IF NOT EXISTS idx_verification_audit_user_id ON ${pgConfig.tables.verification_audit}(user_id)`,
             `CREATE INDEX IF NOT EXISTS idx_verification_audit_created_at ON ${pgConfig.tables.verification_audit}(created_at)`,
             `CREATE INDEX IF NOT EXISTS idx_temp_data_expires_at ON ${pgConfig.tables.temp_data}(expires_at)`,
-            `CREATE INDEX IF NOT EXISTS idx_cache_data_expires_at ON ${pgConfig.tables.cache_data}(expires_at)`
+            `CREATE INDEX IF NOT EXISTS idx_cache_data_expires_at ON ${pgConfig.tables.cache_data}(expires_at)`,
+            `CREATE INDEX IF NOT EXISTS idx_command_logs_guild_id ON ${pgConfig.tables.command_logs}(guild_id, executed_at DESC)`
         ];
 
         for (const index of indexes) {

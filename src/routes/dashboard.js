@@ -379,6 +379,27 @@ router.get('/tags/:guildId', requireAuth, async (req, res) => {
   }
 });
 
+router.get('/command-logs/:guildId', requireAuth, async (req, res) => {
+  try {
+    const { getGuildCommandLogs, getCommandLogStats } = await import('../utils/database/commandLogs.js');
+    const { guildId } = req.params;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+    const offset = parseInt(req.query.offset) || 0;
+    const userId = req.query.userId || null;
+    const commandName = req.query.commandName || null;
+
+    const [logs, stats] = await Promise.all([
+      getGuildCommandLogs(guildId, { limit, offset, userId, commandName }),
+      getCommandLogStats(guildId),
+    ]);
+
+    res.json({ ...logs, stats });
+  } catch (error) {
+    logger.error(`Failed to fetch command logs for guild ${req.params.guildId}:`, error);
+    res.status(500).json({ error: 'Failed to fetch command logs' });
+  }
+});
+
 router.get('/scheduled/:guildId', requireAuth, async (req, res) => {
   try {
     const { getScheduledMessages } = await import('../services/scheduledMessageService.js');
