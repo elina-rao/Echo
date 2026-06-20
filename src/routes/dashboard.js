@@ -8,6 +8,8 @@ import {
   saveWelcomeConfig as persistWelcomeConfig,
   getLevelingConfig as fetchLevelingConfig,
   saveLevelingConfig as persistLevelingConfig,
+  getJoinToCreateConfig as fetchJoinToCreateConfig,
+  saveJoinToCreateConfig as persistJoinToCreateConfig,
 } from '../utils/database.js';
 
 const router = Router();
@@ -196,6 +198,22 @@ router.get('/guilds/:guildId/channels', requireAuth, async (req, res) => {
   res.json(channels);
 });
 
+router.get('/guilds/:guildId/voice-channels', requireAuth, async (req, res) => {
+  const { guildId } = req.params;
+  const client = getClient(req);
+  const guild = client?.guilds?.cache?.get(guildId);
+
+  if (!guild) {
+    return res.status(404).json({ error: 'Guild not found or bot not present' });
+  }
+
+  const channels = guild.channels.cache
+    .filter(c => c.type === 2)
+    .map(c => ({ id: c.id, name: c.name, type: c.type }));
+
+  res.json(channels);
+});
+
 router.get('/guilds/:guildId/roles', requireAuth, async (req, res) => {
   const { guildId } = req.params;
   const client = getClient(req);
@@ -223,10 +241,11 @@ router.get('/settings/:guildId', requireAuth, requireDashboardAccess, async (req
   }
 
   try {
-    const [guildConfig, welcomeConfig, levelingConfig] = await Promise.all([
+    const [guildConfig, welcomeConfig, levelingConfig, joinToCreateConfig] = await Promise.all([
       fetchGuildConfig(client, guildId),
       fetchWelcomeConfig(client, guildId),
       fetchLevelingConfig(client, guildId),
+      fetchJoinToCreateConfig(client, guildId),
     ]);
 
     res.json({
@@ -239,6 +258,7 @@ router.get('/settings/:guildId', requireAuth, requireDashboardAccess, async (req
       config: guildConfig,
       welcome: welcomeConfig,
       leveling: levelingConfig,
+      joinToCreate: joinToCreateConfig,
     });
   } catch (error) {
     logger.error(`Failed to fetch settings for guild ${guildId}:`, error);
@@ -285,6 +305,22 @@ router.post('/settings/:guildId', requireAuth, requireDashboardAccess, async (re
         results.leveling = true;
       } else {
         errors.push('Failed to save leveling config');
+      }
+    }
+
+    if (body.joinToCreate !== undefined) {
+      const j2c = body.joinToCreate;
+      const currentJ2C = await fetchJoinToCreateConfig(client, guildId);
+      const merged = {
+        ...currentJ2C,
+        enabled: Boolean(j2c.enabled),
+        triggerChannels: j2c.triggerChannels || [],
+      };
+      const ok = await persistJoinToCreateConfig(client, guildId, merged);
+      if (ok) {
+        results.joinToCreate = true;
+      } else {
+        errors.push('Failed to save join-to-create config');
       }
     }
 

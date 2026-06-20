@@ -598,6 +598,7 @@
         if (data.config) dataCache.config = JSON.parse(JSON.stringify(data.config));
         if (data.welcome) dataCache.welcome = JSON.parse(JSON.stringify(data.welcome));
         if (data.leveling) dataCache.leveling = JSON.parse(JSON.stringify(data.leveling));
+        if (data.joinToCreate) dataCache.joinToCreate = JSON.parse(JSON.stringify(data.joinToCreate));
 
         document.getElementById('serverSelectorName').textContent = data.guild.name;
         document.getElementById('serverSelectorMembers').textContent = `${data.guild.memberCount.toLocaleString()} members`;
@@ -1272,21 +1273,52 @@
     async function renderJoinToCreate() {
       const container = document.getElementById('tab-jointocreate');
       if (!guildData) return;
-      const cfg = dataCache.config || {};
+      const jc = dataCache.joinToCreate || {};
 
       let channels = [];
-      try { channels = await apiFetch(`/guilds/${currentGuildId}/channels`); } catch (e) {}
+      try { channels = await apiFetch(`/guilds/${currentGuildId}/voice-channels`); } catch (e) {}
+
+      const triggerChannelId = (jc.triggerChannels || [])[0] || null;
 
       const enabledRow = makeSettingRow('Join-to-Create', 'Toggle the join-to-create voice channel system.', () =>
-        makeToggle('config', 'joinToCreateEnabled', cfg.joinToCreateEnabled));
+        makeToggle('joinToCreate', 'enabled', jc.enabled));
 
-      const channelRow = makeSettingRow('Join Channel', 'Voice channel that users join to create a temporary channel.', () =>
-        makeSelect('config', 'joinToCreateChannelId', cfg.joinToCreateChannelId, channels));
+      const channelRow = makeSettingRow('Join Channel', 'Voice channel that users join to create a temporary channel.', () => {
+        const wrap = document.createElement('div');
+        wrap.className = 'select-wrap';
+        const sel = document.createElement('select');
+        sel.innerHTML = `<option value="">None</option>${channels.filter(c => c.type === 2).map(o =>
+          `<option value="${o.id}" ${triggerChannelId === o.id ? 'selected' : ''}>${o.name}</option>`
+        ).join('')}`;
+        sel.addEventListener('change', () => {
+          dataCache.joinToCreate.triggerChannels = sel.value ? [sel.value] : [];
+          markDirty('joinToCreate', 'triggerChannels');
+        });
+        wrap.appendChild(sel);
+        return wrap;
+      });
+
+      const channelIdRow = makeSettingRow('Channel ID (fallback)', 'If the voice channel doesn\'t appear above, enter its ID manually.', () => {
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'display:flex;align-items:center;gap:8px;';
+        const input = document.createElement('input');
+        input.className = 'input-field';
+        input.type = 'text';
+        input.value = triggerChannelId || '';
+        input.placeholder = 'Voice channel ID...';
+        input.style.width = '220px';
+        input.addEventListener('input', () => {
+          dataCache.joinToCreate.triggerChannels = input.value ? [input.value] : [];
+          markDirty('joinToCreate', 'triggerChannels');
+        });
+        wrap.appendChild(input);
+        return wrap;
+      });
 
       container.innerHTML = '';
       container.appendChild(renderCard('j2c-main', '🔊 Join-to-Create',
         'Let members create temporary voice channels by joining a designated channel.', [
-        enabledRow, channelRow,
+        enabledRow, channelRow, channelIdRow,
       ]));
     }
 
