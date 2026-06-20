@@ -3,6 +3,7 @@ import { logger } from '../utils/logger.js';
 import { getLevelingConfig, getUserLevelData } from '../services/leveling.js';
 import { addXp } from '../services/xpSystem.js';
 import { checkRateLimit } from '../utils/rateLimiter.js';
+import { checkMessage as autoModCheck } from '../services/autoModService.js';
 import { parsePrefixCommand } from '../utils/prefixParser.js';
 import { supportsPrefixExecution, executePrefixCommand, resolvePrefixAccessKey } from '../utils/messageAdapter.js';
 import { resolveCommandAlias, resolveSubcommandAlias } from '../config/commandAliases.js';
@@ -28,6 +29,8 @@ export default {
       if (message.author.bot || !message.guild) return;
 
       logger.debug(`Message received from ${message.author.tag}: ${message.content}`);
+
+      await autoModCheck(message, client);
 
       const countingProcessed = await handleCountingGame(message, client);
       if (countingProcessed) {

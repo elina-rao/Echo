@@ -353,6 +353,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><path d="M12 2a10 10 0 1 0 10 10h-10V2z"/></svg>
           Verification
         </div>
+        <div class="nav-item" data-tab="tags">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          Tags / FAQ
+        </div>
         <div class="nav-item" data-tab="economy">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
           Economy
@@ -388,6 +392,7 @@
       <div id="tab-logging" class="tab-content"></div>
       <div id="tab-reactionroles" class="tab-content"></div>
       <div id="tab-verification" class="tab-content"></div>
+      <div id="tab-tags" class="tab-content"></div>
       <div id="tab-economy" class="tab-content"></div>
       <div id="tab-birthday" class="tab-content"></div>
       <div id="tab-counters" class="tab-content"></div>
@@ -464,11 +469,20 @@
       if (currentGuildId) loadSettings(currentGuildId);
     }
 
+    function processPayload(section, data) {
+      if (section === 'config') {
+        if (typeof data.autoModBlockedWords === 'string') {
+          data.autoModBlockedWords = data.autoModBlockedWords.split(',').map(w => w.trim()).filter(Boolean);
+        }
+      }
+      return data;
+    }
+
     async function saveAll() {
       const payload = {};
       for (const section of Object.keys(dirty)) {
         if (dataCache[section]) {
-          payload[section] = { ...dataCache[section] };
+          payload[section] = processPayload(section, { ...dataCache[section] });
         }
       }
       if (Object.keys(payload).length === 0) {
@@ -545,7 +559,7 @@
     }
 
     async function loadSettings(guildId) {
-      for (const tab of ['overview', 'general', 'welcome', 'leveling', 'moderation', 'logging', 'reactionroles', 'verification', 'economy', 'birthday', 'counters', 'jointocreate', 'dashboardaccess']) {
+      for (const tab of ['overview', 'general', 'welcome', 'leveling', 'moderation', 'logging', 'reactionroles', 'verification', 'tags', 'economy', 'birthday', 'counters', 'jointocreate', 'dashboardaccess']) {
         document.getElementById(`tab-${tab}`).innerHTML = `
           <div class="loading-overlay">
             <div style="width:60%;height:20px;margin-bottom:12px;" class="skeleton"></div>
@@ -588,7 +602,7 @@
         const activeTab = document.querySelector('.tab-content.active')?.id?.replace('tab-', '') || 'overview';
         renderTab(activeTab);
       } catch (e) {
-        const allTabs = ['overview', 'general', 'welcome', 'leveling', 'moderation', 'logging', 'reactionroles', 'verification', 'economy', 'birthday', 'counters', 'jointocreate', 'dashboardaccess'];
+        const allTabs = ['overview', 'general', 'welcome', 'leveling', 'moderation', 'logging', 'reactionroles', 'verification', 'tags', 'economy', 'birthday', 'counters', 'jointocreate', 'dashboardaccess'];
         const is403 = e.message?.includes('403') || e.message?.includes('Access denied');
         for (const tab of allTabs) {
           document.getElementById(`tab-${tab}`).innerHTML = is403 ? `
@@ -631,7 +645,7 @@
         leveling: renderLeveling, moderation: renderModeration, logging: renderLogging,
         reactionroles: renderReactionRoles, verification: renderVerification,
         economy: renderEconomy, birthday: renderBirthday,
-        counters: renderCounters, jointocreate: renderJoinToCreate,
+        counters: renderCounters, jointocreate: renderJoinToCreate, tags: renderTags,
         dashboardaccess: renderDashboardAccess,
       };
       if (fns[tab]) fns[tab]();
@@ -1042,21 +1056,33 @@
       try { roles = await apiFetch(`/guilds/${currentGuildId}/roles`); } catch (e) {}
 
       const logChannelRow = makeSettingRow('Moderation Log Channel', 'Channel where moderation actions are logged.', () =>
-        makeSelect('config', 'modLogChannelId', cfg.modLogChannelId, channels));
+        makeSelect('config', 'autoModLogChannelId', cfg.autoModLogChannelId, channels));
 
       const muteRoleRow = makeSettingRow('Mute Role', 'Role assigned to muted members.', () =>
-        makeSelect('config', 'muteRoleId', cfg.muteRoleId, roles));
+        makeSelect('config', 'autoModMuteRoleId', cfg.autoModMuteRoleId, roles));
 
-      const autoModRow = makeSettingRow('Auto-Moderation', 'Enable automatic moderation for spam, invites, and links.', () =>
+      const autoModRow = makeSettingRow('Auto-Moderation', 'Enable automatic moderation for spam, blocked words, invites, and links.', () =>
         makeToggle('config', 'autoModEnabled', cfg.autoModEnabled));
 
-      const warnLimitRow = makeSettingRow('Warning Limit', 'Max warnings before automatic action (ban/kick).', () =>
-        makeInput('config', 'warnLimit', cfg.warnLimit, '5'));
+      const blockedWordsRow = makeSettingRow('Blocked Words', 'Comma-separated list of blocked words.', () =>
+        makeInput('config', 'autoModBlockedWords', Array.isArray(cfg.autoModBlockedWords) ? cfg.autoModBlockedWords.join(', ') : '', 'word1, word2, word3'));
+
+      const spamThresholdRow = makeSettingRow('Spam Threshold', 'Number of messages in 10s before auto-mod acts.', () =>
+        makeInput('config', 'autoModSpamThreshold', cfg.autoModSpamThreshold || '', '5'));
+
+      const warnLimitRow = makeSettingRow('Warning Limit', 'Max warnings before mute role is assigned.', () =>
+        makeInput('config', 'autoModWarnLimit', cfg.autoModWarnLimit || '', '3'));
+
+      const blockLinksRow = makeSettingRow('Block Links', 'Delete messages containing URLs.', () =>
+        makeToggle('config', 'autoModBlockedLinks', cfg.autoModBlockedLinks));
+
+      const blockInvitesRow = makeSettingRow('Block Invites', 'Delete messages containing Discord invite links.', () =>
+        makeToggle('config', 'autoModBlockedInvites', cfg.autoModBlockedInvites));
 
       container.innerHTML = '';
       container.appendChild(renderCard('mod-main', '🛡️ Moderation Settings',
         'Configure moderation behavior, auto-mod, and logging.', [
-        logChannelRow, muteRoleRow, autoModRow, warnLimitRow,
+        logChannelRow, muteRoleRow, autoModRow, blockedWordsRow, spamThresholdRow, warnLimitRow, blockLinksRow, blockInvitesRow,
       ]));
     }
 
@@ -1284,6 +1310,46 @@
         return;
       }
       await loadGuildList();
+    }
+
+    async function renderTags() {
+      const container = document.getElementById('tab-tags');
+      if (!currentGuildId) return;
+      container.innerHTML = '<div class="card"><div class="card-body"><div class="skeleton" style="width:200px;height:20px;"></div></div></div>';
+
+      let tags = [];
+      try {
+        const data = await apiFetch(`/tags/${currentGuildId}`);
+        tags = data.tags || [];
+      } catch {
+        container.innerHTML = '<div class="card"><div class="card-body" style="color:#ed4245;">Failed to load tags.</div></div>';
+        return;
+      }
+
+      const html = `
+        <div class="card">
+          <div class="card-header">
+            <h2>📋 Tags / FAQ</h2>
+            <span class="card-hint">Manage tags using Discord commands</span>
+          </div>
+          <div class="card-body">
+            <p style="color:#949ba4;margin-bottom:12px;">
+              Use <code style="background:#1e1f22;padding:2px 6px;border-radius:3px;color:#b794f4;">/tag create</code> in Discord to add new tags.
+            </p>
+            ${tags.length === 0 ? '<p style="color:#949ba4;font-style:italic;">No tags created yet.</p>' : ''}
+            ${tags.map(t => `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#1e1f22;border-radius:4px;margin-bottom:4px;">
+                <div>
+                  <div style="font-weight:500;color:#dbdee1;">${t.name}</div>
+                  <div style="font-size:12px;color:#949ba4;max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.content}</div>
+                </div>
+                <div style="font-size:11px;color:#5a5d63;">by ${t.createdBy ? `<code style="font-size:11px;">${t.createdBy}</code>` : 'unknown'}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+      container.innerHTML = html;
     }
 
     init();
