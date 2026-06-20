@@ -550,6 +550,197 @@ export async function createTemporaryChannel(guild, member, options = {}) {
     }
 }
 
+/* ───── VC Owner Commands ───── */
+
+export async function lockChannel(client, guildId, channelId, memberId) {
+    const config = await getJoinToCreateConfig(client, guildId);
+    const tempInfo = config.temporaryChannels?.[channelId];
+    if (!tempInfo) {
+        throw new TitanBotError('Channel is not a temporary voice channel.', ErrorTypes.VALIDATION, 'This is not a temporary voice channel.');
+    }
+    if (tempInfo.ownerId !== memberId) {
+        throw new TitanBotError('You do not own this channel.', ErrorTypes.VALIDATION, 'Only the channel owner can lock it.');
+    }
+
+    const guild = client.guilds.cache.get(guildId);
+    const channel = guild?.channels.cache.get(channelId);
+    if (!channel) {
+        throw new TitanBotError('Channel not found.', ErrorTypes.VALIDATION, 'Could not find that voice channel.');
+    }
+
+    await channel.permissionOverwrites.edit(guild.id, {
+        Connect: false,
+    }, { reason: `VC locked by ${memberId}` });
+
+    config.temporaryChannels[channelId] = { ...tempInfo, locked: true };
+    await saveJoinToCreateConfig(client, guildId, config);
+
+    return true;
+}
+
+export async function unlockChannel(client, guildId, channelId, memberId) {
+    const config = await getJoinToCreateConfig(client, guildId);
+    const tempInfo = config.temporaryChannels?.[channelId];
+    if (!tempInfo) {
+        throw new TitanBotError('Channel is not a temporary voice channel.', ErrorTypes.VALIDATION, 'This is not a temporary voice channel.');
+    }
+    if (tempInfo.ownerId !== memberId) {
+        throw new TitanBotError('You do not own this channel.', ErrorTypes.VALIDATION, 'Only the channel owner can unlock it.');
+    }
+
+    const guild = client.guilds.cache.get(guildId);
+    const channel = guild?.channels.cache.get(channelId);
+    if (!channel) {
+        throw new TitanBotError('Channel not found.', ErrorTypes.VALIDATION, 'Could not find that voice channel.');
+    }
+
+    const everyoneOverwrite = channel.permissionOverwrites.cache.get(guild.id);
+    if (everyoneOverwrite && everyoneOverwrite.deny.has(PermissionFlagsBits.Connect)) {
+        await everyoneOverwrite.delete({ reason: `VC unlocked by ${memberId}` });
+    }
+
+    config.temporaryChannels[channelId] = { ...tempInfo, locked: false };
+    await saveJoinToCreateConfig(client, guildId, config);
+
+    return true;
+}
+
+export async function approveUser(client, guildId, channelId, memberId, targetUserId) {
+    const config = await getJoinToCreateConfig(client, guildId);
+    const tempInfo = config.temporaryChannels?.[channelId];
+    if (!tempInfo) {
+        throw new TitanBotError('Channel is not a temporary voice channel.', ErrorTypes.VALIDATION, 'This is not a temporary voice channel.');
+    }
+    if (tempInfo.ownerId !== memberId) {
+        throw new TitanBotError('You do not own this channel.', ErrorTypes.VALIDATION, 'Only the channel owner can approve users.');
+    }
+
+    const guild = client.guilds.cache.get(guildId);
+    const channel = guild?.channels.cache.get(channelId);
+    if (!channel) {
+        throw new TitanBotError('Channel not found.', ErrorTypes.VALIDATION, 'Could not find that voice channel.');
+    }
+
+    await channel.permissionOverwrites.edit(targetUserId, {
+        Connect: true,
+    }, { reason: `Approved by ${memberId}` });
+
+    const whitelist = tempInfo.whitelist || [];
+    if (!whitelist.includes(targetUserId)) {
+        whitelist.push(targetUserId);
+    }
+    config.temporaryChannels[channelId] = { ...tempInfo, whitelist };
+    await saveJoinToCreateConfig(client, guildId, config);
+
+    return true;
+}
+
+export async function denyUser(client, guildId, channelId, memberId, targetUserId) {
+    const config = await getJoinToCreateConfig(client, guildId);
+    const tempInfo = config.temporaryChannels?.[channelId];
+    if (!tempInfo) {
+        throw new TitanBotError('Channel is not a temporary voice channel.', ErrorTypes.VALIDATION, 'This is not a temporary voice channel.');
+    }
+    if (tempInfo.ownerId !== memberId) {
+        throw new TitanBotError('You do not own this channel.', ErrorTypes.VALIDATION, 'Only the channel owner can deny users.');
+    }
+
+    const guild = client.guilds.cache.get(guildId);
+    const channel = guild?.channels.cache.get(channelId);
+    if (!channel) {
+        throw new TitanBotError('Channel not found.', ErrorTypes.VALIDATION, 'Could not find that voice channel.');
+    }
+
+    const targetOverwrite = channel.permissionOverwrites.cache.get(targetUserId);
+    if (targetOverwrite) {
+        await targetOverwrite.delete({ reason: `Denied by ${memberId}` });
+    }
+
+    const member = guild?.members.cache.get(targetUserId);
+    if (member?.voice?.channelId === channelId) {
+        try {
+            await member.voice.disconnect('Removed from VC by owner');
+        } catch {
+            // member might have already left
+        }
+    }
+
+    const whitelist = (tempInfo.whitelist || []).filter(id => id !== targetUserId);
+    config.temporaryChannels[channelId] = { ...tempInfo, whitelist };
+    await saveJoinToCreateConfig(client, guildId, config);
+
+    return true;
+}
+
+export async function kickUser(client, guildId, channelId, memberId, targetUserId) {
+    const config = await getJoinToCreateConfig(client, guildId);
+    const tempInfo = config.temporaryChannels?.[channelId];
+    if (!tempInfo) {
+        throw new TitanBotError('Channel is not a temporary voice channel.', ErrorTypes.VALIDATION, 'This is not a temporary voice channel.');
+    }
+    if (tempInfo.ownerId !== memberId) {
+        throw new TitanBotError('You do not own this channel.', ErrorTypes.VALIDATION, 'Only the channel owner can kick users.');
+    }
+
+    const guild = client.guilds.cache.get(guildId);
+    const member = guild?.members.cache.get(targetUserId);
+    if (member?.voice?.channelId === channelId) {
+        try {
+            await member.voice.disconnect('Kicked from VC by owner');
+        } catch (error) {
+            throw new TitanBotError('Failed to kick user.', ErrorTypes.DISCORD_API, 'Could not disconnect that user.');
+        }
+    }
+
+    return true;
+}
+
+export async function claimOwnership(client, guildId, channelId, memberId) {
+    const config = await getJoinToCreateConfig(client, guildId);
+    const tempInfo = config.temporaryChannels?.[channelId];
+    if (!tempInfo) {
+        throw new TitanBotError('Channel is not a temporary voice channel.', ErrorTypes.VALIDATION, 'This is not a temporary voice channel.');
+    }
+    if (tempInfo.ownerId === memberId) {
+        throw new TitanBotError('You already own this channel.', ErrorTypes.VALIDATION, 'You are already the owner of this channel.');
+    }
+
+    const guild = client.guilds.cache.get(guildId);
+    const channel = guild?.channels.cache.get(channelId);
+    if (!channel) {
+        throw new TitanBotError('Channel not found.', ErrorTypes.VALIDATION, 'Could not find that voice channel.');
+    }
+
+    const currentOwner = guild?.members.cache.get(tempInfo.ownerId);
+    if (currentOwner?.voice?.channelId === channelId) {
+        throw new TitanBotError('Owner is still in the channel.', ErrorTypes.VALIDATION, 'The current owner is still in this channel.');
+    }
+
+    const oldOwnerId = tempInfo.ownerId;
+    config.temporaryChannels[channelId] = { ...tempInfo, ownerId: memberId };
+    await saveJoinToCreateConfig(client, guildId, config);
+
+    try {
+        const newOwner = await guild.members.fetch(memberId);
+        const channelOptions = config.channelOptions?.[tempInfo.triggerChannelId] || {};
+        const nameTemplate = channelOptions.nameTemplate || config.channelNameTemplate || "{username}'s Room";
+        const newName = formatChannelName(nameTemplate, {
+            username: newOwner.user.username,
+            userTag: newOwner.user.tag,
+            displayName: newOwner.displayName,
+            guildName: guild.name,
+            channelName: 'Voice',
+        });
+        await channel.setName(newName, `Ownership claimed by ${memberId}`);
+    } catch {
+        // renaming is best-effort
+    }
+
+    logger.info(`Ownership of temporary channel ${channelId} transferred from ${oldOwnerId} to ${memberId} via claim`);
+
+    return true;
+}
+
 export default {
     validateChannelNameTemplate,
     validateBitrate,
@@ -563,5 +754,11 @@ export default {
     getChannelConfiguration,
     hasManageGuildPermission,
     logConfigurationChange,
-    createTemporaryChannel
+    createTemporaryChannel,
+    lockChannel,
+    unlockChannel,
+    approveUser,
+    denyUser,
+    kickUser,
+    claimOwnership,
 };
